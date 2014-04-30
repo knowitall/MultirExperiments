@@ -11,7 +11,7 @@ javaOptions in run += "-Xmx12G"
 javaOptions in run += "-Djava.util.Arrays.useLegacyMergeSort=true"
 
 libraryDependencies ++= Seq(
-  "edu.washington.cs.knowitall" % "multir-framework_2.10" % "0.1-SNAPSHOT",
+  "edu.washington.cs.knowitall" % "multir-framework_2.10" % "0.1-SNAPSHOT" withSources() withJavadoc(),
   "edu.washington.cs.knowitall.stanford-corenlp" % "stanford-ner-models" % "1.3.5",
   "edu.washington.cs.knowitall.stanford-corenlp" % "stanford-postag-models" % "1.3.5",
   "edu.washington.cs.knowitall.stanford-corenlp" % "stanford-dcoref-models" % "1.3.5",
