@@ -53,9 +53,15 @@ public class Experiment {
 		 corpus.setCorpusToTrain(testDocumentsFile);
 		}
 		else{
-			 corpus.setCorpusToTest(testDocumentsFile);
+		  corpus.setCorpusToTest(testDocumentsFile);
 		}
 		
+		if(!filesExist(multirDirs)){
+			for(String s : multirDirs){
+				File f = new File(s);
+				f.mkdirs();
+			}
+		}
 		
 		if(oldFeatureFiles != null){
 			runFeedbackExperiment(corpus);
@@ -91,12 +97,6 @@ public class Experiment {
 		}
 
 		//do average training run
-		if(!filesExist(multirDirs)){
-			for(String s : multirDirs){
-				File f = new File(s);
-				f.mkdirs();
-			}
-		}
 		TrainModel.run(featureFiles,multirDirs,10);
 		
 	}
