@@ -106,9 +106,13 @@ public class Experiment {
 	private void runFeedbackExperiment(Corpus corpus) throws SQLException, IOException, InterruptedException, ExecutionException {
 		
 		List<String> feedbackDSFiles = new ArrayList<>();
-		for(String s : DSFiles){
-			feedbackDSFiles.add(s+".extrs");
+		int count = 1;
+		for(String s : featureFiles){
+			File f = new File(s);
+			File dir = f.getParentFile();
+			feedbackDSFiles.add(dir.toString()+"/FBDS"+count);
 		}
+		count++;
 		List<String> feedbackFeatureFiles = new ArrayList<>();
 		for(String s: feedbackDSFiles){
 			feedbackFeatureFiles.add(s+".features");

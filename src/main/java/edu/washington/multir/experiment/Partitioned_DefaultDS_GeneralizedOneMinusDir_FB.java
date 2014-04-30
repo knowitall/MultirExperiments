@@ -26,25 +26,33 @@ import edu.washington.multirframework.distantsupervision.NegativeExampleCollecti
 import edu.washington.multirframework.featuregeneration.DefaultFeatureGeneratorGeneralizedMinusDirPath;
 import edu.washington.multirframework.knowledgebase.KnowledgeBase;
 
-public class GeneralizedOneMinusDirPatitionedFeedbackExperiment {
+public class Partitioned_DefaultDS_GeneralizedOneMinusDir_FB {
 
 	public static void main(String [] args) throws SQLException, IOException, InterruptedException, ExecutionException{
+		
+		 String expPath = "/scratch2/usr/jgilme1/MultirExperimentsExperiments/";
+		 String expName = Partitioned_DefaultDS_GeneralizedOneMinusDir_FB.class.getSimpleName();
+		 String fullPath = expPath+expName+"/";
+		 String oldExp = Partitioned_DefaultDS_GeneralizedOneMinusDir.class.getSimpleName();
+		 String oldPath = expPath+oldExp+"/";
+		
 		Experiment e = new Experiment();
 		e.setAi(NERArgumentIdentification.getInstance());
 		e.setFg(new DefaultFeatureGeneratorGeneralizedMinusDirPath());
-		//e.setRm(NERRelationMatching.getInstance());
-		//e.setNec(NegativeExampleCollectionByRatio.getInstance(4.0));
+		e.setRm(NERRelationMatching.getInstance());
+		e.setNec(NegativeExampleCollectionByRatio.getInstance(4.0));
 		
-		/*
+		
 		e.setKb(new KnowledgeBase("/projects/WebWare6/Multir/MultirSystem/files/kbfiles/fb-rels-all.tsv.gz",
 				"/projects/WebWare6/Multir/MultirSystem/files/kbfiles/fb-entities.tsv",
 				"/projects/WebWare6/Multir/MultirSystem/files/targetRelations/partitionRelations.txt"));
-		*/
 		
 		
+		/*
 		e.setKb(new KnowledgeBase("/scratch2/code/multir-reimplementation/MultirSystem/fb-rels-10mill.tsv",
 				"/projects/WebWare6/Multir/MultirSystem/files/kbfiles/fb-entities.tsv",
 				"/projects/WebWare6/Multir/MultirSystem/files/targetRelations/partitionRelations.txt"));
+				*/
 		
 		
 		
@@ -66,49 +74,49 @@ public class GeneralizedOneMinusDirPatitionedFeedbackExperiment {
 		cis.addSentenceInformation(sentInformationList);
 		cis.addTokenInformation(tokenInformationList);
 		e.setCis(cis);
-		e.setCorpusPath("/scratch2/code/multir-reimplementation/MultirExtractor/FullCorpus-UIUCNotableTypes");
+		e.setCorpusPath("/scratch2/usr/jgilme1/FullCorpus");
 		e.setTestDocumentsFile("/projects/WebWare6/Multir/MultirSystem/files/testDocuments");
 		
 		List<String> dsFiles = new ArrayList<String>();
-		/*
 		dsFiles.add("/projects/WebWare6/Multir/MultirSystem/files/distantSupervision/TypePartitionDistantSupervision/Baseline-ORGPER-DS");
 		dsFiles.add("/projects/WebWare6/Multir/MultirSystem/files/distantSupervision/TypePartitionDistantSupervision/Baseline-PERPER-DS");
 		dsFiles.add("/projects/WebWare6/Multir/MultirSystem/files/distantSupervision/TypePartitionDistantSupervision/Baseline-PERLOC-DS");
-		*/
+		/*
 		dsFiles.add("ORGPER-DS");
 		dsFiles.add("PERPER-DS");
 		dsFiles.add("PERLOC-DS");
+		*/
 		e.setDSFiles(dsFiles);
 		
 		TypeSignatureRelationMap.init("/projects/WebWare6/Multir/MultirSystem/files/distantSupervision/TypePartitionDistantSupervision/TargetRelationTypeSignatureMap");
 		
 		List<String> featureFiles = new ArrayList<>();
-		featureFiles.add("featuresORGPER-FB");
-		featureFiles.add("featuresPERPER-FB");
-		featureFiles.add("featuresPERLOC-FB");
+		featureFiles.add(fullPath+"featuresORGPER-FB");
+		featureFiles.add(fullPath+"featuresPERPER-FB");
+		featureFiles.add(fullPath+"featuresPERLOC-FB");
 		e.setFeatureFiles(featureFiles);
 		
 		List<String> oldFeatureFiles = new ArrayList<>();
-		oldFeatureFiles.add("featuresORGPER");
-		oldFeatureFiles.add("featuresPERPER");
-		oldFeatureFiles.add("featuresPERLOC");
+		oldFeatureFiles.add(oldPath+"featuresORGPER");
+		oldFeatureFiles.add(oldPath+"featuresPERPER");
+		oldFeatureFiles.add(oldPath+"featuresPERLOC");
 		e.setOldFeatureFiles(oldFeatureFiles);
 		
 		List<String> modelFiles = new ArrayList<String>();
-		modelFiles.add("modelTest-FB/modelORGPER-FB");
-		modelFiles.add("modelTest-FB/modelPERPER-FB");
-		modelFiles.add("modelTest-FB/modelPERLOC-FB");
+		modelFiles.add(fullPath+"modelORGPER-FB");
+		modelFiles.add(fullPath+"modelPERPER-FB");
+		modelFiles.add(fullPath+"modelPERLOC-FB");
 		e.setMultirDir(modelFiles);
 		
 		
 		List<String> oldModelFiles = new ArrayList<String>();
-		oldModelFiles.add("/projects/WebWare6/Multir/MultirSystem/files/models/Baseline-ORGPER-Multir");
-		oldModelFiles.add("/projects/WebWare6/Multir/MultirSystem/files/models/Baseline-PERPER-Multir");
-		oldModelFiles.add("/projects/WebWare6/Multir/MultirSystem/files/models/Baseline-PERLOC-Multir");
+		oldModelFiles.add(oldPath+"modelORGPER-FB");
+		oldModelFiles.add(oldPath+"modelPERPER-FB");
+		oldModelFiles.add(oldPath+"modelPERLOC-FB");
 		e.setOldMultirDirs(oldModelFiles);
 		
 		
-		e.setTrain(false);
+		e.setTrain(true);
 		
 		FigerTypeUtils.init();
 		e.runExperiment();
