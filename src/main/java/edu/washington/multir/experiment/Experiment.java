@@ -3,22 +3,38 @@ package edu.washington.multir.experiment;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.io.IOUtils;
+
+import com.cedarsoftware.util.io.JsonObject;
+import com.cedarsoftware.util.io.JsonReader;
+
+import edu.washington.multir.data.TypeSignatureRelationMap;
 import edu.washington.multir.development.TrainModel;
 import edu.washington.multir.distantsupervision.FeedbackDistantSupervision;
 import edu.washington.multir.distantsupervision.MultiModelDistantSupervision;
+import edu.washington.multir.util.FigerTypeUtils;
 import edu.washington.multirframework.argumentidentification.ArgumentIdentification;
 import edu.washington.multirframework.argumentidentification.RelationMatching;
 import edu.washington.multirframework.argumentidentification.SententialInstanceGeneration;
 import edu.washington.multirframework.corpus.Corpus;
 import edu.washington.multirframework.corpus.CorpusInformationSpecification;
+import edu.washington.multirframework.corpus.CustomCorpusInformationSpecification;
+import edu.washington.multirframework.corpus.DocumentInformationI;
+import edu.washington.multirframework.corpus.SentInformationI;
+import edu.washington.multirframework.corpus.TokenInformationI;
 import edu.washington.multirframework.distantsupervision.DistantSupervision;
 import edu.washington.multirframework.distantsupervision.NegativeExampleCollection;
 import edu.washington.multirframework.featuregeneration.FeatureGeneration;
@@ -26,8 +42,8 @@ import edu.washington.multirframework.featuregeneration.FeatureGenerator;
 import edu.washington.multirframework.knowledgebase.KnowledgeBase;
 
 public class Experiment {
-	
 	private String corpusPath;
+	private String typeRelMapPath;
 	private ArgumentIdentification ai;
 	private FeatureGenerator fg;
 	private List<SententialInstanceGeneration> sigs;
@@ -43,10 +59,165 @@ public class Experiment {
 	private CorpusInformationSpecification cis;
 	private String evalOutputName;
 	private boolean train = true;
+	private boolean useFiger = false;
+	
+	public Experiment(){}
+	public Experiment(String propertiesFile) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException{
 
-
-
+		String jsonProperties = IOUtils.toString(new FileInputStream(new File(propertiesFile)));
+		Map<String,Object> properties = JsonReader.jsonToMaps(jsonProperties);
+		
+		corpusPath = getStringProperty(properties,"corpusPath");
+		evalOutputName = getStringProperty(properties,"evalOutputName");
+		testDocumentsFile = getStringProperty(properties,"testDocumentsFile");
+		String train = getStringProperty(properties,"train");
+		double necRatio = 4.0;
+		if(train!=null){
+			if(train.equals("false")){
+				this.train = false;
+			}
+		}
+		
+		String useFiger = getStringProperty(properties,"useFiger");
+		if(useFiger!=null){
+			if(useFiger.equals("true")){
+				this.useFiger = true;
+			}
+		}
+		String featureGeneratorClass = getStringProperty(properties,"fg");
+		if(featureGeneratorClass != null){
+			fg = (FeatureGenerator) ClassLoader.getSystemClassLoader().loadClass(featureGeneratorClass).newInstance();
+		}
+		
+		String aiClass = getStringProperty(properties,"ai");
+		if(aiClass != null){
+			ai = (ArgumentIdentification) ClassLoader.getSystemClassLoader().loadClass(aiClass).getMethod("getInstance").invoke(null);
+		}
+		
+		String rmClass = getStringProperty(properties,"rm");
+		if(rmClass != null){
+			rm = (RelationMatching) ClassLoader.getSystemClassLoader().loadClass(rmClass).getMethod("getInstance").invoke(null);
+		}
+		
+		String necRatioString = getStringProperty(properties,"necRatio");
+		if(necRatioString!=null){
+			necRatio = Double.parseDouble(necRatioString);
+		}
+		
+		String necClass = getStringProperty(properties,"nec");
+		if(necClass != null){
+			nec = (NegativeExampleCollection) ClassLoader.getSystemClassLoader().loadClass(necClass).getMethod("getInstance", double.class).invoke(null,necRatio);
+		}
+		
+		String kbRelFile = getStringProperty(properties,"kbRelFile");
+		String kbEntityFile = getStringProperty(properties,"kbEntityFile");
+		String targetRelFile = getStringProperty(properties,"targetRelFile");
+		if(kbRelFile!=null && kbEntityFile!=null && targetRelFile != null){
+			kb = new KnowledgeBase(kbRelFile,kbEntityFile,targetRelFile);
+		}
+		
+		List<String> sigClasses = getListProperty(properties,"sigs");
+		sigs = new ArrayList<>();
+		for(String sigClass : sigClasses){
+			sigs.add((SententialInstanceGeneration)ClassLoader.getSystemClassLoader().loadClass(sigClass).getMethod("getInstance").invoke(null));
+		}
+		
+		List<String> dsFileNames = getListProperty(properties,"dsFiles");
+		DSFiles = new ArrayList<>();
+		for(String dsFileName : dsFileNames){
+			DSFiles.add(dsFileName);
+		}
+		
+		List<String> oldFeatureFileNames = getListProperty(properties,"oldFeatureFiles");
+		oldFeatureFiles = new ArrayList<>();
+		for(String oldFeatureFileName : oldFeatureFileNames){
+			oldFeatureFiles.add(oldFeatureFileName);
+		}
+		
+		List<String> featureFileNames = getListProperty(properties,"featureFiles");
+		featureFiles = new ArrayList<>();
+		for(String featureFileName : featureFileNames){
+			featureFiles.add(featureFileName);
+		}
+		
+		List<String> oldMultirDirNames = getListProperty(properties,"oldModels");
+		oldMultirDirs = new ArrayList<>();
+		for(String oldMultirDirName : oldMultirDirNames){
+			oldMultirDirs.add(oldMultirDirName);
+		}
+		
+		multirDirs = new ArrayList<>();
+		List<String> multirDirNames = getListProperty(properties,"models");
+		for(String multirDirName : multirDirNames){
+			multirDirs.add(multirDirName);
+		}
+		
+		cis = new CustomCorpusInformationSpecification();
+		
+		String altCisString = getStringProperty(properties,"cis");
+		if(altCisString != null){
+			cis = (CustomCorpusInformationSpecification)ClassLoader.getSystemClassLoader().loadClass(altCisString).newInstance();
+		}
+		
+		//CorpusInformationSpecification
+		List<String> tokenInformationClassNames = getListProperty(properties,"ti");
+		List<TokenInformationI> tokenInfoList = new ArrayList<>();
+		for(String tokenInformationClassName : tokenInformationClassNames){
+			tokenInfoList.add((TokenInformationI)ClassLoader.getSystemClassLoader().loadClass(tokenInformationClassName).newInstance());
+		}
+		
+		List<String> sentInformationClassNames = getListProperty(properties,"si");
+		List<SentInformationI> sentInfoList = new ArrayList<>();
+		for(String sentInformationClassName : sentInformationClassNames){
+			sentInfoList.add((SentInformationI)ClassLoader.getSystemClassLoader().loadClass(sentInformationClassName).newInstance());
+		}
+		
+		List<String> docInformationClassNames = getListProperty(properties,"di");
+		List<DocumentInformationI> docInfoList = new ArrayList<>();
+		for(String docInformationClassName : docInformationClassNames){
+			docInfoList.add((DocumentInformationI)ClassLoader.getSystemClassLoader().loadClass(docInformationClassName).newInstance());
+		}
+		
+		CustomCorpusInformationSpecification ccis = (CustomCorpusInformationSpecification)cis;
+		ccis.addDocumentInformation(docInfoList);
+		ccis.addTokenInformation(tokenInfoList);
+		ccis.addSentenceInformation(sentInfoList);
+		
+		
+		typeRelMapPath = getStringProperty(properties,"typeRelMap");
+		
+	}
+	
+	private List<String> getListProperty(Map<String, Object> properties,
+			String string) {
+		if(properties.containsKey(string)){
+			JsonObject obj = (JsonObject) properties.get(string);
+			List<String> returnValues = new ArrayList<>();
+			for(Object o : obj.getArray()){
+				returnValues.add(o.toString());
+			}
+			return returnValues;
+		}
+		return new ArrayList<>();
+	}
+	private String getStringProperty(Map<String,Object> properties, String str) {
+		if(properties.containsKey(str)){
+			if(properties.get(str)== null){
+				return null;
+			}
+			else{
+				return properties.get(str).toString();
+			}
+		}
+		return null;
+	}
 	public void runExperiment() throws SQLException, IOException, InterruptedException, ExecutionException{
+		if(useFiger){
+			FigerTypeUtils.init();
+		}
+		if(typeRelMapPath!=null){
+			TypeSignatureRelationMap.init(typeRelMapPath);
+		}
 		
 		Corpus corpus = new Corpus(corpusPath, cis, true);
 		if(train){
@@ -64,7 +235,9 @@ public class Experiment {
 		}
 		
 		if(oldFeatureFiles != null){
-			runFeedbackExperiment(corpus);
+			if(oldFeatureFiles.size() > 0){
+			 runFeedbackExperiment(corpus);
+			}
 		}
 	
 		boolean runDS = !filesExist(DSFiles);
@@ -99,6 +272,10 @@ public class Experiment {
 		//do average training run
 		TrainModel.run(featureFiles,multirDirs,10);
 		
+		
+		if(useFiger){
+			FigerTypeUtils.close();
+		}
 	}
 
 
@@ -386,6 +563,14 @@ public class Experiment {
 
 	public void setTrain(boolean train) {
 		this.train = train;
+	}
+	
+	public static void main(String [] args) throws IOException, InstantiationException, 
+	IllegalAccessException, ClassNotFoundException, IllegalArgumentException, 
+	InvocationTargetException, NoSuchMethodException, SecurityException, SQLException, 
+	InterruptedException, ExecutionException{
+		Experiment e = new Experiment(args[0]);
+		e.runExperiment();
 	}
 
 

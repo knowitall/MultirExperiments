@@ -110,9 +110,9 @@ public class Partitioned_DefaultDS_GeneralizedOneMinusDir_FB {
 		
 		
 		List<String> oldModelFiles = new ArrayList<String>();
-		oldModelFiles.add(oldPath+"modelORGPER-FB");
-		oldModelFiles.add(oldPath+"modelPERPER-FB");
-		oldModelFiles.add(oldPath+"modelPERLOC-FB");
+		oldModelFiles.add(oldPath+"modelORGPER");
+		oldModelFiles.add(oldPath+"modelPERPER");
+		oldModelFiles.add(oldPath+"modelPERLOC");
 		e.setOldMultirDirs(oldModelFiles);
 		
 		

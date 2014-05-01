@@ -23,7 +23,8 @@ libraryDependencies ++= Seq(
   "edu.mit" % "jwi" % "2.2.3",
   "postgresql" % "postgresql" % "9.0-801.jdbc4",
   "edu.washington.cs.knowitall.nlptools" % "nlptools-wordnet-uw_2.10" % "2.4.4",
-  "org.apache.hadoop" % "hadoop-core" % "0.20.2")
+  "org.apache.hadoop" % "hadoop-core" % "0.20.2",
+  "com.cedarsoftware" % "json-io" % "2.6.0")
 
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
