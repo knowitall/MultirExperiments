@@ -288,8 +288,8 @@ public class Experiment {
 			File f = new File(s);
 			File dir = f.getParentFile();
 			feedbackDSFiles.add(dir.toString()+"/FBDS"+count);
+			count++;
 		}
-		count++;
 		List<String> feedbackFeatureFiles = new ArrayList<>();
 		for(String s: feedbackDSFiles){
 			feedbackFeatureFiles.add(s+".features");

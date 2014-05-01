@@ -78,7 +78,7 @@ public class DefaultFeatureGeneratorConcatFIGERGeneralizedMinusDirPath implement
 		
 		
 		features.addAll(originalMultirFeatures);
-		if(!figerConcatenationString.equals("(O,O)")){
+		if(!figerConcatenationString.toString().equals("(O,O)")){
 			for(String multirFeature : originalMultirFeatures){
 				features.add(multirFeature +" " +figerConcatenationString.toString());
 			}
