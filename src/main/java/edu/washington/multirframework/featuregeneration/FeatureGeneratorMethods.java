@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.util.CoreMap;
@@ -766,6 +767,29 @@ public class FeatureGeneratorMethods {
 
 	}
 	
+	public static List<Triple<CoreLabel, DependencyType, CoreLabel>> getDependencyPathWindow(
+			Integer argCharEndOffset, CoreMap sentence) {
+		
+		
+		List<Triple<Integer,String,Integer>> dependencyInfo = sentence.get(DependencyAnnotation.class);
+		List<CoreLabel> tokens = sentence.get(CoreAnnotations.TokensAnnotation.class);
+		Integer argTokenOffset = getTokenOffset(argCharEndOffset,tokens);
+		List<Triple<CoreLabel,DependencyType,CoreLabel>> pathList = new ArrayList<>();
+		
+		for(Triple<Integer,String,Integer> t : dependencyInfo){
+			if(t.first.equals(argTokenOffset)){
+				pathList.add(new Triple<>(tokens.get(t.first-1),new DependencyType(t.second,Direction.UP),tokens.get(t.third-1)));
+			}
+			if(t.third.equals(argTokenOffset)){
+				
+			}
+		}
+
+		
+		
+		return pathList;
+	}
+	
 	private static class BooleanFlag {
 		private boolean value;
 		
@@ -898,4 +922,5 @@ public class FeatureGeneratorMethods {
 			return null;
 		}
 	}
+
 }
