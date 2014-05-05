@@ -68,6 +68,23 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 		//get exact middle token sequence
 		List<CoreLabel> middleTokens = FeatureGeneratorMethods.getMiddleTokens(leftArgOffsets.second, rightArgOffsets.first, tokens);
 		List<Triple<CoreLabel,DependencyType,CoreLabel>> dependencyPathMiddleTokens = FeatureGeneratorMethods.getDependencyPath(leftArgOffsets.second,rightArgOffsets.second,sentence);
+		List<Triple<CoreLabel,DependencyType,CoreLabel>> dependencyPathLeftWindow = FeatureGeneratorMethods.getDependencyPathWindow(leftArgOffsets.second, sentence);
+		List<Triple<CoreLabel,DependencyType,CoreLabel>> dependencyPathRightWindow = FeatureGeneratorMethods.getDependencyPathWindow(rightArgOffsets.second, sentence);
+		
+		//leftWindow
+		System.out.println("Printing left dep windows");
+		for(Triple<CoreLabel,DependencyType,CoreLabel> t: dependencyPathLeftWindow){
+			System.out.println(t.first.get(CoreAnnotations.TextAnnotation.class) + "\t" + t.second + "\t" +t.third.get(CoreAnnotations.TextAnnotation.class));
+		}
+		
+		
+		System.out.println("Printing right dep windows");
+		for(Triple<CoreLabel,DependencyType,CoreLabel> t: dependencyPathRightWindow){
+			System.out.println(t.first.get(CoreAnnotations.TextAnnotation.class) + "\t" + t.second + "\t" +t.third.get(CoreAnnotations.TextAnnotation.class));
+		}
+
+		
+
 		List<CoreLabel> leftWindowTokens = FeatureGeneratorMethods.getLeftWindowTokens(leftArgOffsets.first, tokens, WINDOW_SIZE);
 		List<CoreLabel> rightWindowTokens = FeatureGeneratorMethods.getRightWindowTokens(rightArgOffsets.second, tokens, WINDOW_SIZE);
 		List<CoreLabel> leftTokens = FeatureGeneratorMethods.getLeftWindowTokens(leftArgOffsets.first, tokens);
@@ -140,6 +157,8 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 		return featureBuilder.toString().trim();
 	}
 
+	
+	//private String getDependencyPath
 
 
 

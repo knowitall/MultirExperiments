@@ -60,6 +60,8 @@ public class Experiment {
 	private String evalOutputName;
 	private boolean train = true;
 	private boolean useFiger = false;
+	private boolean collapseSentences = false;
+	Integer metionThreshold = 0;
 	
 	public Experiment(){}
 	public Experiment(String propertiesFile) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException{
@@ -76,6 +78,19 @@ public class Experiment {
 			if(train.equals("false")){
 				this.train = false;
 			}
+		}
+		
+		String collapseSentencesString = getStringProperty(properties,"collapseSentences");
+		if(collapseSentencesString!=null){
+			if(collapseSentencesString.equals("true")){
+				this.collapseSentences = true;
+			}
+		}
+		
+		String mentionString = getStringProperty(properties,"mentionThreshold");
+		if(mentionString!=null){
+			Integer mt = Integer.parseInt(mentionString);
+			this.metionThreshold=mt;
 		}
 		
 		String useFiger = getStringProperty(properties,"useFiger");
@@ -270,7 +285,7 @@ public class Experiment {
 		}
 
 		//do average training run
-		TrainModel.run(featureFiles,multirDirs,10);
+		TrainModel.run(featureFiles,multirDirs,10,collapseSentences,metionThreshold);
 		
 		
 		if(useFiger){

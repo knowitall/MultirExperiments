@@ -8,7 +8,6 @@ import java.util.Random;
 
 import org.apache.commons.cli.ParseException;
 
-import edu.washington.multirframework.multiralgorithm.Preprocess;
 import edu.washington.multirframework.multiralgorithm.Train;
 import edu.washington.multir.util.CLIUtils;
 
@@ -26,10 +25,10 @@ public class TrainModel {
 		List<String> featureFilePaths = CLIUtils.loadFeatureFilePaths(arguments);
 		List<String> modelFiles = CLIUtils.loadOutputFilePaths(arguments);
 		Integer numberOfAverages = CLIUtils.loadNumberOfAverages(arguments);
-		run(featureFilePaths,modelFiles,numberOfAverages);
+		run(featureFilePaths,modelFiles,numberOfAverages,false,0);
 	}
 	
-	public static void run(List<String> featureFilePaths, List<String> modelFiles, Integer numberOfAverages) throws IOException{
+	public static void run(List<String> featureFilePaths, List<String> modelFiles, Integer numberOfAverages, boolean collapseSentences, Integer mentionThreshold) throws IOException{
 		
 		if(featureFilePaths.size() != modelFiles.size()){
 			throw new IllegalArgumentException("Number of feature files must be equal to number of output model files");
@@ -52,7 +51,7 @@ public class TrainModel {
 					File newModelFile = new File(modelFile.getAbsolutePath()+"/"+modelFile.getName()+"avgIter"+avgIter);
 					if(!newModelFile.exists()) newModelFile.mkdir();
 					randomModelFiles.add(newModelFile);
-					Preprocess.run(featureFile, newModelFile.getAbsolutePath().toString(),new Random(randomSeed));
+					Preprocess.run(featureFile, newModelFile.getAbsolutePath().toString(),new Random(randomSeed),collapseSentences,mentionThreshold);
 					randomSeed++;
 					Train.train(newModelFile.getAbsoluteFile().toString());
 				}
@@ -60,7 +59,7 @@ public class TrainModel {
 			}
 			
 			else{
-				Preprocess.run(featureFile, modelFile.getAbsolutePath().toString(),null);
+				Preprocess.run(featureFile, modelFile.getAbsolutePath().toString(),null,collapseSentences,mentionThreshold);
 				Train.train(modelFile.getAbsoluteFile().toString());
 			}
 		}
