@@ -497,7 +497,7 @@ public class FeatureGeneratorDraft3 implements FeatureGenerator{
 			default:
 				throw new IllegalArgumentException("Bad Direction");
 			}
-			sb.insert(0,("("+type+")"));
+			sb.insert(0,("["+type+"]"));
 			return sb.toString();
 		}
 	}

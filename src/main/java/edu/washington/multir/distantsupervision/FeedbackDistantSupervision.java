@@ -99,6 +99,45 @@ public class FeedbackDistantSupervision {
 			}
 		}
 
+		run(kb,modelPaths,outputDSFiles,sigs,fg,ai,trainCorpus);
+
+	}
+
+	private static List<DSEntityPair> getEntityPairs(
+			List<DS> relationSpecificDsList) {
+		
+		Map<String,List<DS>> idsToDSListMap = new HashMap<>();
+		List<DSEntityPair> dsEntityPairs = new ArrayList<>();
+		for(DS ds : relationSpecificDsList){
+			
+			String key = ds.arg1ID+":"+ds.arg2ID;
+			if(idsToDSListMap.containsKey(key)){
+				idsToDSListMap.get(key).add(ds);
+			}
+			else{
+				List<DS> newDSList = new ArrayList<>();
+				newDSList.add(ds);
+				idsToDSListMap.put(key,newDSList);
+			}
+		}
+		
+		
+		for(String key: idsToDSListMap.keySet()){
+			List<DS> dsList = idsToDSListMap.get(key);
+			String[] values = key.split(":");
+			String arg1Id = values[0];
+			String arg2Id = values[1];
+			//prevent single instance entity pairs
+			if(dsList.size()>1) dsEntityPairs.add(new DSEntityPair(arg1Id,arg2Id,dsList));
+		}
+		return dsEntityPairs;
+	}
+	
+	
+	public static void run(KnowledgeBase kb, List<String> modelPaths, List<String> outputDSFiles,
+			List<SententialInstanceGeneration> sigs,
+			FeatureGenerator fg, ArgumentIdentification ai, Corpus trainCorpus) throws SQLException, IOException{
+		
 		//create PartitionData Map from model name
 		Map<String,PartitionData> modelDataMap = new HashMap<>();
 		
@@ -293,36 +332,6 @@ public class FeedbackDistantSupervision {
 			}
 			bw.close();
 		}
-	}
-
-	private static List<DSEntityPair> getEntityPairs(
-			List<DS> relationSpecificDsList) {
-		
-		Map<String,List<DS>> idsToDSListMap = new HashMap<>();
-		List<DSEntityPair> dsEntityPairs = new ArrayList<>();
-		for(DS ds : relationSpecificDsList){
-			
-			String key = ds.arg1ID+":"+ds.arg2ID;
-			if(idsToDSListMap.containsKey(key)){
-				idsToDSListMap.get(key).add(ds);
-			}
-			else{
-				List<DS> newDSList = new ArrayList<>();
-				newDSList.add(ds);
-				idsToDSListMap.put(key,newDSList);
-			}
-		}
-		
-		
-		for(String key: idsToDSListMap.keySet()){
-			List<DS> dsList = idsToDSListMap.get(key);
-			String[] values = key.split(":");
-			String arg1Id = values[0];
-			String arg2Id = values[1];
-			//prevent single instance entity pairs
-			if(dsList.size()>1) dsEntityPairs.add(new DSEntityPair(arg1Id,arg2Id,dsList));
-		}
-		return dsEntityPairs;
 	}
 
 	private static void collapseArgumentPairs(List<DS> topPositiveExtractions) {
