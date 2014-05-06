@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -39,6 +40,7 @@ import edu.washington.multirframework.data.Argument;
 import edu.washington.multirframework.data.KBArgument;
 import edu.washington.multirframework.featuregeneration.FeatureGenerator;
 import edu.washington.multirframework.knowledgebase.KnowledgeBase;
+import edu.washington.multir.data.RelatedLocationMap;
 import edu.washington.multir.sententialextraction.DocumentExtractor;
 import edu.washington.multir.util.CLIUtils;
 import edu.washington.multir.util.CorpusUtils;
@@ -53,6 +55,7 @@ public class FeedbackNegativeDistantSupervision {
 	private static final String MID_BASE = "MID";
 	private static Map<String,List<String>> idToAliasMap = null;
 	private static boolean print = true;
+	private static RelatedLocationMap rlm = null;
 	
 	public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, ParseException, NoSuchMethodException, SecurityException, IllegalArgumentException, InvocationTargetException, SQLException, IOException{
 		
@@ -62,6 +65,7 @@ public class FeedbackNegativeDistantSupervision {
 		for(String arg: args){
 			arguments.add(arg);
 		}
+		rlm = RelatedLocationMap.getInstance();
 		CorpusInformationSpecification cis = CLIUtils.loadCorpusInformationSpecification(arguments);
 		FeatureGenerator fg = CLIUtils.loadFeatureGenerator(arguments);
 		ArgumentIdentification ai = CLIUtils.loadArgumentIdentification(arguments);
@@ -373,20 +377,20 @@ public class FeedbackNegativeDistantSupervision {
 		
 		
 		
-		if(typesDoNotMatch(kb,arg1Id,second,rel,sentence)) {
-			if(print) System.out.println("Returning false types for " + arg1Id + " do not match type of " + second.getArgName());
-			return false;
-		}
+//		if(typesDoNotMatch(kb,arg1Id,second,rel,sentence)) {
+//			if(print) System.out.println("Returning false types for " + arg1Id + " do not match type of " + second.getArgName());
+//			return false;
+//		}
 		
 		
-		List<String> arg1Ids = getCandidates(kb,first,arg1Id,rel); 
+		List<String> arg1Ids = getCandidates(kb,first,arg1Id,rel,sentence); 
 		if(arg1Ids.size() == 0) {
 			if(print) System.out.println("Arg1 has no candidates " +first.getArgName() + " " + arg1Id);
 			return false;
 		}
 		
 		
-		List<String> arg2Ids = getCandidates(kb,second,arg2Id);
+		List<String> arg2Ids = getCandidates(kb,second,arg2Id,sentence);
 		if(arg2Ids.size() == 0) {
 			if(print) System.out.println("Arg2 has no candidates " +second.getArgName() + " " + arg2Id);
 			return false;
@@ -426,7 +430,7 @@ public class FeedbackNegativeDistantSupervision {
 
 
 	private static List<String> getCandidates(KnowledgeBase kb, Argument first,
-			String arg1Id, String rel) {
+			String arg1Id, String rel, CoreMap sentence) {
 		Set<String> validTokens = new HashSet<>();
 		Set<String> entityIds = new HashSet<>();
 		validTokens.addAll(getValidTokens(first.getArgName()));
@@ -439,18 +443,26 @@ public class FeedbackNegativeDistantSupervision {
 			validTokens.addAll(getValidTokens(alias));
 		}
 		
-		if(kb.participatesInRelationAsArg1(arg1Id, rel))
-		
-		for(String k : idToAliasMap.keySet()){
-			aliases = idToAliasMap.get(k);
-			for(String alias: aliases){
-				for(String token : validTokens){
-					if(alias.equals(token) || alias.contains(token)){
-						if(kb.participatesInRelationAsArg1(k, rel)) entityIds.add(k);
+		if(kb.participatesInRelationAsArg1(arg1Id, rel)){
+			entityIds.add(arg1Id);
+			for(String k : idToAliasMap.keySet()){
+				aliases = idToAliasMap.get(k);
+				for(String alias: aliases){
+					for(String token : validTokens){
+						for(String aliasToken: alias.split("\\s+")){
+							if(aliasToken.equals(token)){
+								entityIds.add(k);
+							}
+						}
 					}
 				}
 			}
 		}
+		
+		if(TypeConstraintUtils.getNERType(first,sentence.get(CoreAnnotations.TokensAnnotation.class)).equals("LOCATION")){
+			entityIds.addAll(getRelatedLocations(arg1Id));
+		}
+		
 		if(entityIds.contains(arg1Id)) {
 			return new ArrayList<>(entityIds);
 		}
@@ -459,11 +471,16 @@ public class FeedbackNegativeDistantSupervision {
 		}
 	}
 
+	private static Set<String> getRelatedLocations(
+			String argId) {
+		return 	rlm.getRelatedLocations(argId);
+	}
+
 	private static List<String> getCandidates(KnowledgeBase kb, Argument first,
-			String arg1Id) {
+			String arg1Id, CoreMap sentence) {
 		
 		Set<String> validTokens = new HashSet<>();
-		List<String> entityIds = new ArrayList<>();
+		Set<String> entityIds = new HashSet<>();
 		validTokens.addAll(getValidTokens(first.getArgName()));
 		
 		List<String> aliases = idToAliasMap.get(arg1Id);
@@ -474,17 +491,24 @@ public class FeedbackNegativeDistantSupervision {
 			validTokens.addAll(getValidTokens(alias));
 		}
 		
+		entityIds.add(arg1Id);
 		for(String k : idToAliasMap.keySet()){
 			aliases = idToAliasMap.get(k);
 			for(String alias: aliases){
 				for(String token : validTokens){
-					if(alias.equals(token) || alias.contains(token)){
-						entityIds.add(k);
+					for(String aliasToken: alias.split("\\s+")){
+						if(aliasToken.equals(token)){
+							entityIds.add(k);
+						}
 					}
 				}
 			}
 		}
-		return entityIds;
+		if(TypeConstraintUtils.getNERType(first,sentence.get(CoreAnnotations.TokensAnnotation.class)).equals("LOCATION")){
+			entityIds.addAll(getRelatedLocations(arg1Id));
+		}
+		
+		return new ArrayList<>(entityIds);
 	}
 	
 	private static List<String> getValidTokens (String str){
