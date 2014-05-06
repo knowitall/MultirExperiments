@@ -33,10 +33,7 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 	private static final String INVERSE_TRUE_FEATURE = "INVERSE:true";
 	private static final String INVERSE_FALSE_FEATURE = "INVERSE:false";
 	private static final String GENERAL_FEATURE = "g:";
-	private static final String BIGRAM_FEATURE = "b:";
-	private static final String DISTANCE_FEATURE = "d:";
 	private static final String TYPE_FEATURE = "t:";
-	private static final String HEIGHT_FEATURE = "h:";
 	private static final String DEP_Feature = "dep:";
         private static List<String> defaultBigram;
         private static DefaultFeatureGeneratorMinusDirPath OldFeatureGenerator = new DefaultFeatureGeneratorMinusDirPath();
@@ -103,17 +100,33 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 		if(isGeneralized(middleGeneralizedTokenSequenceFeature+ " "+ rightGeneralizedTokenSequenceFeature))features.add(middleGeneralizedTokenSequenceFeature+ " "+ rightGeneralizedTokenSequenceFeature);
 
 		if(dependencyPathMiddleTokens.size() > 0){
-			String middleDependencySequenceFeature = makeFeature(getDependencyPathMiddleSequenceFeature(dependencyPathMiddleTokens,leftArgOffsets,rightArgOffsets,GeneralizationClass.None)
+			String middleDependencySequenceFeature = makeFeature(getDependencyPathSequenceFeature(dependencyPathMiddleTokens,GeneralizationClass.None)
 					,inverseFeature,typeFeature,DEP_Feature);
 			String generalizedMiddleDependencySequenceFeature = makeFeature(
-					getDependencyPathMiddleSequenceFeature(dependencyPathMiddleTokens,leftArgOffsets,rightArgOffsets,GeneralizationClass.First),
+					getDependencyPathSequenceFeature(dependencyPathMiddleTokens,GeneralizationClass.First),
 					inverseFeature,typeFeature,DEP_Feature,GENERAL_FEATURE);
 			String feature = generalizedMiddleDependencySequenceFeature;
 			if(isGeneralized(feature)) features.add(feature);
-			feature = generalizedMiddleDependencySequenceFeature+" "+leftGeneralizedTokenSequenceFeature;
-			if(isGeneralized(feature)) features.add(feature);
-			feature = generalizedMiddleDependencySequenceFeature+" "+rightGeneralizedTokenSequenceFeature;
-			if(isGeneralized(feature)) features.add(feature);
+			for(Triple<CoreLabel,DependencyType,CoreLabel> depWindow : dependencyPathLeftWindow){
+				List<Triple<CoreLabel,DependencyType,CoreLabel>> depList = new ArrayList<>();
+				depList.add(depWindow);
+				feature = makeFeature(getDependencyPathSequenceFeature(depList,GeneralizationClass.First) + generalizedMiddleDependencySequenceFeature);
+				System.out.println(feature);
+				if(isGeneralized(feature)) features.add(feature);
+			}
+			for(Triple<CoreLabel,DependencyType,CoreLabel> depWindow : dependencyPathRightWindow){
+				List<Triple<CoreLabel,DependencyType,CoreLabel>> depList = new ArrayList<>();
+				depList.add(depWindow);
+				feature = generalizedMiddleDependencySequenceFeature + makeFeature(getDependencyPathSequenceFeature(depList,GeneralizationClass.First));
+				System.out.println(feature);
+				if(isGeneralized(feature)) features.add(feature);
+			}
+			
+			
+//			feature = generalizedMiddleDependencySequenceFeature+" "+leftGeneralizedTokenSequenceFeature;
+//			if(isGeneralized(feature)) features.add(feature);
+//			feature = generalizedMiddleDependencySequenceFeature+" "+rightGeneralizedTokenSequenceFeature;
+//			if(isGeneralized(feature)) features.add(feature);
 		}
 
                 features.addAll(OldFeatureGenerator.generateFeatures(arg1StartOffset, arg1EndOffset, arg2StartOffset, arg2EndOffset, arg1ID, arg2ID,
@@ -129,14 +142,14 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 	}
 
 
-	private String getDependencyPathMiddleSequenceFeature(
-			List<Triple<CoreLabel, DependencyType, CoreLabel>> dependencyPathMiddleTokens,
-			Pair<Integer,Integer> leftArgOffsets, Pair<Integer,Integer> rightArgOffsets, GeneralizationClass gc) {
+	private String getDependencyPathSequenceFeature(
+			List<Triple<CoreLabel, DependencyType, CoreLabel>> dependencyList,
+			GeneralizationClass gc) {
 		StringBuilder featureBuilder = new StringBuilder();
-		for(int i = 0; i < dependencyPathMiddleTokens.size(); i++){
-			Triple<CoreLabel,DependencyType,CoreLabel> trip = dependencyPathMiddleTokens.get(i);
+		for(int i = 0; i < dependencyList.size(); i++){
+			Triple<CoreLabel,DependencyType,CoreLabel> trip = dependencyList.get(i);
 			featureBuilder.append(trip.second);
-			if(i!=dependencyPathMiddleTokens.size()-1){
+			if(i!=dependencyList.size()-1){
 				String text = trip.third.get(CoreAnnotations.TextAnnotation.class);
 				switch(gc){
 				case None:
@@ -190,44 +203,6 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 
 
 
-	
-	private List<List<String>> getRightBigrams(List<String> generalTokens, int numBigrams){
-		List<List<String>> bigrams = new ArrayList<List<String>>();
-		
-		int i =0;
-		while((i<generalTokens.size()-1) && (bigrams.size()<numBigrams)){
-			
-			List<String> bigram = new ArrayList<String>();
-			bigram.add(generalTokens.get(i));
-			bigram.add(generalTokens.get(i+1));
-			
-			if(!bigram.equals(defaultBigram)){
-				bigrams.add(bigram);
-			}	
-			i++;
-		}
-		return bigrams;
-	}
-	
-	private List<List<String>> getLeftBigrams(List<String> tokens, int numBigrams){
-		List<List<String>> bigrams = new ArrayList<List<String>>();
-		
-		int i = tokens.size()-1;
-		while((i>0) && (bigrams.size()<numBigrams)){
-			
-			List<String> bigram = new ArrayList<String>();
-			bigram.add(tokens.get(i-1));
-			bigram.add(tokens.get(i));
-			
-			if(!bigram.equals(defaultBigram)){
-				bigrams.add(bigram);
-			}	
-			i--;
-		}
-		return bigrams;
-	}
-
-
 	private String makeSequenceFeature(List<String> generalTokens,
 			String ... prefixes) {
 		StringBuilder featureBuilder = new StringBuilder();
@@ -245,24 +220,7 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 		
 		return featureBuilder.toString().trim();
 	}
-	
-	private String makeTokenFeature(List<CoreLabel> tokens,
-			String ... prefixes) {
-		StringBuilder featureBuilder = new StringBuilder();
-		
-		//add prefixes
-		for(int i =0; i < prefixes.length; i++){
-			featureBuilder.append(prefixes[i]);
-			featureBuilder.append(" ");
-		}
-		
-		for(CoreLabel t : tokens){
-			featureBuilder.append(t.get(CoreAnnotations.TextAnnotation.class));
-			featureBuilder.append(" ");
-		}
-		
-		return featureBuilder.toString().trim();
-	}
+
 	
 	private String makeFeature(String featureString, String ... prefixes){
 		StringBuilder featureBuilder = new StringBuilder();
