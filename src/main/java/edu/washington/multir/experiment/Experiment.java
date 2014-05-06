@@ -24,6 +24,7 @@ import com.cedarsoftware.util.io.JsonReader;
 import edu.washington.multir.data.TypeSignatureRelationMap;
 import edu.washington.multir.development.TrainModel;
 import edu.washington.multir.distantsupervision.FeedbackDistantSupervision;
+import edu.washington.multir.distantsupervision.FeedbackNegativeDistantSupervision;
 import edu.washington.multir.distantsupervision.MultiModelDistantSupervision;
 import edu.washington.multir.util.FigerTypeUtils;
 import edu.washington.multirframework.argumentidentification.ArgumentIdentification;
@@ -310,7 +311,7 @@ public class Experiment {
 			feedbackFeatureFiles.add(s+".features");
 		}
 		
-		FeedbackDistantSupervision.run(kb, oldMultirDirs, feedbackDSFiles, sigs, fg, ai, corpus);
+		FeedbackNegativeDistantSupervision.run(kb, oldMultirDirs, feedbackDSFiles, sigs, fg, ai, corpus);
 
 		FeatureGeneration fGeneration = new FeatureGeneration(fg);
 		fGeneration.run(feedbackDSFiles, feedbackFeatureFiles, corpus, cis);
