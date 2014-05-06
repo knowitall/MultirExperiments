@@ -54,7 +54,7 @@ public class FeedbackNegativeDistantSupervision {
 	private static long newMidCount =0;
 	private static final String MID_BASE = "MID";
 	private static Map<String,List<String>> idToAliasMap = null;
-	private static boolean print = true;
+	private static boolean print = false;
 	private static RelatedLocationMap rlm = null;
 	
 	public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, ParseException, NoSuchMethodException, SecurityException, IllegalArgumentException, InvocationTargetException, SQLException, IOException{
@@ -65,7 +65,6 @@ public class FeedbackNegativeDistantSupervision {
 		for(String arg: args){
 			arguments.add(arg);
 		}
-		rlm = RelatedLocationMap.getInstance();
 		CorpusInformationSpecification cis = CLIUtils.loadCorpusInformationSpecification(arguments);
 		FeatureGenerator fg = CLIUtils.loadFeatureGenerator(arguments);
 		ArgumentIdentification ai = CLIUtils.loadArgumentIdentification(arguments);
@@ -147,7 +146,8 @@ public class FeedbackNegativeDistantSupervision {
 		Map<String,PartitionData> modelDataMap = new HashMap<>();
 		
 		idToAliasMap = kb.getIDToAliasMap();
-		
+		rlm = RelatedLocationMap.getInstance();
+
 		
 		
 		for(int i =0; i < modelPaths.size(); i++){
