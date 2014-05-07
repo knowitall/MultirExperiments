@@ -27,6 +27,7 @@ public class BagManipulation {
 	private static String newArgSuffix = "%";
 	private static int counter = 0;
 	private static String groupedPrefix = "grouped-";
+	private static int groupBagSize = 3;
 
 
 	public static void main (String[] args) throws IOException{
@@ -40,7 +41,7 @@ public class BagManipulation {
 				(new FileInputStream(pathToTrain)));
 		
 		
-		Map<int[],List<SparseBinaryVector>> relationMentionMap = new HashMap<>();
+		Map<Integer,List<SparseBinaryVector>> relationMentionMap = new HashMap<>();
 		List<MILDocument> splitBags = new ArrayList<>();
 		
 		while (d.read(dis)) {
@@ -50,20 +51,23 @@ public class BagManipulation {
 			}
 			
 			//if d num mentions < 5
-			else if(d.Y.length > 0 && d.numMentions < 5){
-				List<SparseBinaryVector> mentionFeaturesList = Arrays.asList(d.features); 
-				if(relationMentionMap.containsKey(d.Y)){
+			else if(d.Y.length == 1 && d.numMentions < 5){
+				List<SparseBinaryVector> mentionFeaturesList = new ArrayList<>();
+				for(SparseBinaryVector sbv: d.features){
+					if(sbv != null) mentionFeaturesList.add(sbv.copy());
+				}
+				if(relationMentionMap.containsKey(d.Y[0])){
 					for(SparseBinaryVector mentionFeatures : mentionFeaturesList){
-						relationMentionMap.get(d.Y).add(mentionFeatures);
+						relationMentionMap.get(d.Y[0]).add(mentionFeatures);
 					}
 				}
 				else{
-					relationMentionMap.put(d.Y, mentionFeaturesList);
+					relationMentionMap.put(d.Y[0], mentionFeaturesList);
 				}
 			}
 			
 			else{
-				l.add(d);
+				l.add(copyMILDocument(d));
 			}
 			d = new MILDocument();
 		}
@@ -84,35 +88,70 @@ public class BagManipulation {
 		//for each relation type with entity pairs with less than 5 mentions, shuffle all entity pairs, and group 
 		//into sets of 5 as new MILDOcuments
 		List<MILDocument> newBags = new ArrayList<>();
-		for(int[] relKey : relationMentionMap.keySet()){
+		System.out.println(relationMentionMap.keySet().size());
+		for(Integer relKey : relationMentionMap.keySet()){
 			List<SparseBinaryVector> mentionFeatures = relationMentionMap.get(relKey);
 			Collections.shuffle(mentionFeatures, r);
 			MILDocument md;
 			int start = 0;
-			String relKeyString = String.valueOf(relKey[0]);
-			for(int i = 1; i < relKey.length; i++){
-				relKeyString += "-"+relKey[i];
-			}
+			String relKeyString = String.valueOf(relKey);
 			
-			for(int i =5; i < mentionFeatures.size(); i+=5){
+			for(int i =groupBagSize; i <= mentionFeatures.size(); i+=groupBagSize){
 				md = new MILDocument();
-				md.numMentions = 5;
+				md.numMentions = groupBagSize;
 				md.arg1 = groupedPrefix+relKeyString+newArgSuffix+counter;
 				counter++;
 				md.arg2 = groupedPrefix+relKeyString+newArgSuffix+counter;
 				counter++;
-				md.features = (SparseBinaryVector[]) mentionFeatures.subList(start, i).toArray();
+				md.features = mentionFeatures.subList(start, i).toArray(new SparseBinaryVector[md.numMentions]);
 				md.Z = new int[md.numMentions];
 				md.mentionIDs = new int[md.numMentions];
 				for(int j =0; j < md.numMentions; j++){
 					md.Z[j] = -1;
 					md.mentionIDs[j] = j;
 				}
-				
-				
+				md.Y=new int[]{relKey};
+				newBags.add(md);
 				start = i;
 				
-				
+				for(int j =0; j < md.numMentions; j++){
+					if(md.features[j] == null){
+						System.out.println("start = " + start);
+						System.out.println("mention Features = " + mentionFeatures.size());
+						System.out.println("num mentions " + md.numMentions);
+						System.out.println("Regular group feature at " + j + "=null");
+					}
+				}
+			}
+			
+			if(start < mentionFeatures.size()){
+				md = new MILDocument();
+				md.numMentions = mentionFeatures.size() - start;
+				md.arg1 = groupedPrefix+relKeyString+newArgSuffix+counter;
+				counter++;
+				md.arg2 = groupedPrefix+relKeyString+newArgSuffix+counter;
+				counter++;
+				md.features = mentionFeatures.subList(start, mentionFeatures.size()).toArray(new SparseBinaryVector[md.numMentions]);
+				md.Z = new int[md.numMentions];
+				md.mentionIDs = new int[md.numMentions];
+				for(int j =0; j < md.numMentions; j++){
+					md.Z[j] = -1;
+					md.mentionIDs[j] = j;
+				}
+				md.Y=new int[] {relKey};
+				if(md.numMentions != md.features.length){
+					System.out.println("numMentions = " + md.numMentions);
+					System.out.println("size of features = " + md.features.length);
+				}
+				for(int i =0; i < md.numMentions; i++){
+					if(md.features[i] == null){
+						System.out.println("start = " + start);
+						System.out.println("mention Features = " + mentionFeatures.size());
+						System.out.println("num mentions " + md.numMentions);
+						System.out.println("Last group feature at " + i + "=null");
+					}
+				}
+				newBags.add(md);
 			}
 		}
 		
@@ -121,6 +160,19 @@ public class BagManipulation {
 		}
 		
 		dos.close();
+	}
+
+	private static MILDocument copyMILDocument(MILDocument d) {
+		MILDocument md = new MILDocument();
+		md.arg1 = d.arg1;
+		md.arg2 = d.arg2;
+		md.features = d.features;
+		md.mentionIDs = d.mentionIDs;
+		md.Y = d.Y;
+		md.Z = d.Z;
+		md.numMentions = d.numMentions;
+		return md;
+		
 	}
 
 	private static List<MILDocument> splitBag(
@@ -144,7 +196,7 @@ public class BagManipulation {
 				bagCount++;
 			}
 			int k =0;
-			for(k = 0; k < 15; k++){
+			for(k = 1; k < 15; k++){
 				if( (k+j) == d.numMentions){
 					break;
 				}
@@ -156,18 +208,24 @@ public class BagManipulation {
 			lastBag.arg2 = d.arg2+newArgSuffix+bagCount;
 			lastBag.features = Arrays.copyOfRange(d.features, j, index, SparseBinaryVector[].class);
 			lastBag.mentionIDs = Arrays.copyOfRange(d.mentionIDs,j,index);
-			lastBag.numMentions = k +1;
+			lastBag.numMentions = lastBag.features.length;
 			lastBag.Z = Arrays.copyOfRange(d.Z, j, index);
 		}
 		
 		if(lastBag.numMentions == 15){
 			newBags.add(lastBag);
+			newBags.add(bigBag);
 		}
 		//combine with bigBag
-		else{
-			List<SparseBinaryVector> newFeatures = Arrays.asList(bigBag.features);
-			newFeatures.addAll(Arrays.asList(lastBag.features));
-			bigBag.features = (SparseBinaryVector[]) newFeatures.toArray();
+		else{			
+			SparseBinaryVector[] newFeatures = new SparseBinaryVector[bigBag.numMentions+lastBag.numMentions];
+			for(int i =0; i < bigBag.numMentions; i++){
+				newFeatures[i] = bigBag.features[i];
+			}
+			for(int j =0; j < lastBag.numMentions; j++){
+				newFeatures[bigBag.numMentions+j] = lastBag.features[j];
+			}
+			bigBag.features = newFeatures;
 
 			int[] newMentionIds = new int[bigBag.numMentions+lastBag.numMentions];
 			for(int i =0; i < bigBag.numMentions; i++){
