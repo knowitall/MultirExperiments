@@ -61,7 +61,9 @@ public class Experiment {
 	private boolean train = false;
 	private boolean useFiger = false;
 	private boolean collapseSentences = false;
+	private boolean useMultiLabels = true;
 	Integer metionThreshold = 0;
+	private Integer minBagSize = 1;
 	
 	public Experiment(){}
 	public Experiment(String propertiesFile) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException{
@@ -81,6 +83,21 @@ public class Experiment {
 			else if(train.equals("true")){
 				this.train = true;
 			}
+		}
+		
+		String useMultiLabelsString = getStringProperty(properties,"useMultiLabels");
+		if(useMultiLabelsString!=null){
+			if(useMultiLabelsString.equals("true")){
+				useMultiLabels =true;
+			}
+			else{
+				useMultiLabels=false;
+			}
+		}
+		
+		String minBagSizeString = getStringProperty(properties,"minBagSize");
+		if(minBagSizeString!=null){
+			this.minBagSize = Integer.parseInt(minBagSizeString);
 		}
 		
 		
@@ -289,8 +306,7 @@ public class Experiment {
 		}
 
 		//do average training run
-		TrainModel.run(featureFiles,multirDirs,10,collapseSentences,metionThreshold);
-		
+		TrainModel.run(featureFiles,multirDirs,10,collapseSentences,useMultiLabels,metionThreshold,minBagSize);
 		
 		if(useFiger){
 			FigerTypeUtils.close();

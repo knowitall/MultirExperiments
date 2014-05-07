@@ -25,10 +25,10 @@ public class TrainModel {
 		List<String> featureFilePaths = CLIUtils.loadFeatureFilePaths(arguments);
 		List<String> modelFiles = CLIUtils.loadOutputFilePaths(arguments);
 		Integer numberOfAverages = CLIUtils.loadNumberOfAverages(arguments);
-		run(featureFilePaths,modelFiles,numberOfAverages,false,0);
+		run(featureFilePaths,modelFiles,numberOfAverages,false,true,0,1);
 	}
 	
-	public static void run(List<String> featureFilePaths, List<String> modelFiles, Integer numberOfAverages, boolean collapseSentences, Integer mentionThreshold) throws IOException{
+	public static void run(List<String> featureFilePaths, List<String> modelFiles, Integer numberOfAverages, boolean collapseSentences,boolean useMultiLabels, Integer mentionThreshold, Integer minBagSize) throws IOException{
 		
 		if(featureFilePaths.size() != modelFiles.size()){
 			throw new IllegalArgumentException("Number of feature files must be equal to number of output model files");
@@ -51,7 +51,13 @@ public class TrainModel {
 					File newModelFile = new File(modelFile.getAbsolutePath()+"/"+modelFile.getName()+"avgIter"+avgIter);
 					if(!newModelFile.exists()) newModelFile.mkdir();
 					randomModelFiles.add(newModelFile);
-					Preprocess.run(featureFile, newModelFile.getAbsolutePath().toString(),new Random(randomSeed),collapseSentences,mentionThreshold);
+					Preprocess.run(featureFile, newModelFile.getAbsolutePath().toString(),new Random(randomSeed),collapseSentences,useMultiLabels,mentionThreshold);
+					if(minBagSize > 1){
+						File oldTrain = new File(newModelFile.getAbsolutePath()+"/train");
+						oldTrain.renameTo(new File(newModelFile.getAbsolutePath()+"/train.old"));
+						File newTrain = new File(newModelFile.getAbsolutePath()+"/train");
+						BagManipulation.run(oldTrain.getAbsolutePath(), newTrain.getAbsolutePath(), minBagSize);
+					}
 					randomSeed++;
 					Train.train(newModelFile.getAbsoluteFile().toString());
 				}
@@ -59,7 +65,7 @@ public class TrainModel {
 			}
 			
 			else{
-				Preprocess.run(featureFile, modelFile.getAbsolutePath().toString(),null,collapseSentences,mentionThreshold);
+				Preprocess.run(featureFile, modelFile.getAbsolutePath().toString(),null,collapseSentences,useMultiLabels,mentionThreshold);
 				Train.train(modelFile.getAbsoluteFile().toString());
 			}
 		}

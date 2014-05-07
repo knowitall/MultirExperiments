@@ -46,11 +46,11 @@ public class Preprocess {
 	 */
 	public static void main(String[] args) 
 	throws IOException {
-            run(args[0],args[1],null,false,0);
+            run(args[0],args[1],null,false,true,0);
 	}
 	
 	
-	public static void run(String featureFile, String trainDir, Random r, boolean collapseSentences, int mentionThreshold) throws IOException{
+	public static void run(String featureFile, String trainDir, Random r, boolean collapseSentences, boolean useMultiLabels, int mentionThreshold) throws IOException{
     	long start = System.currentTimeMillis();
     	
     	printMemoryStatistics();
@@ -68,7 +68,7 @@ public class Preprocess {
 			System.out.println("PREPROCESSING TRAIN FEATURES");
 		{
 			String output1 = outDir + File.separatorChar + "train";
-			convertFeatureFileToMILDocument(trainFile, output1, mapping,r,collapseSentences,mentionThreshold);
+			convertFeatureFileToMILDocument(trainFile, output1, mapping,r,collapseSentences,useMultiLabels,mentionThreshold);
 		}
 		
 			System.out.println("FINISHED PREPROCESSING TRAIN FEATURES");
@@ -178,7 +178,7 @@ public class Preprocess {
 	 * @param collapseSentences 
 	 * @throws IOException
 	 */
-	private static void convertFeatureFileToMILDocument(String input, String output, Mappings m, Random r, boolean collapseSentences, int mentionThreshold) throws IOException {
+	private static void convertFeatureFileToMILDocument(String input, String output, Mappings m, Random r, boolean collapseSentences, boolean useMultiLabels, int mentionThreshold) throws IOException {
 		//open input and output streams
 		DataOutputStream os = new DataOutputStream
 			(new BufferedOutputStream(new FileOutputStream(output)));
@@ -323,7 +323,9 @@ public class Preprocess {
 	    	  }
 	    	}
 	    	else if(doc.Y.length > 1){
-	    		
+	    		if(useMultiLabels){
+	    			doc.write(os);
+	    		}
 	    	}
 	    	else{
 	    		doc.write(os);

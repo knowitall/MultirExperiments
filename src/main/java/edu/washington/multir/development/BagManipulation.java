@@ -31,10 +31,11 @@ public class BagManipulation {
 
 
 	public static void main (String[] args) throws IOException{
-		run(args[0],args[1]);
+		run(args[0],args[1],3);
 	}
 	
-	public static void run(String pathToTrain, String pathToNewTrain) throws IOException{
+	public static void run(String pathToTrain, String pathToNewTrain, int minBagSize) throws IOException{
+		groupBagSize = minBagSize;
 		MILDocument d = new MILDocument();
 		List<MILDocument> l = new ArrayList<MILDocument>();
 		DataInputStream dis = new DataInputStream(new BufferedInputStream
