@@ -58,7 +58,7 @@ public class Experiment {
 	private String testDocumentsFile;
 	private CorpusInformationSpecification cis;
 	private String evalOutputName;
-	private boolean train = true;
+	private boolean train = false;
 	private boolean useFiger = false;
 	private boolean collapseSentences = false;
 	Integer metionThreshold = 0;
@@ -78,7 +78,11 @@ public class Experiment {
 			if(train.equals("false")){
 				this.train = false;
 			}
+			else if(train.equals("true")){
+				this.train = true;
+			}
 		}
+		
 		
 		String collapseSentencesString = getStringProperty(properties,"collapseSentences");
 		if(collapseSentencesString!=null){
@@ -239,7 +243,7 @@ public class Experiment {
 		 corpus.setCorpusToTrain(testDocumentsFile);
 		}
 		else{
-		  corpus.setCorpusToTest(testDocumentsFile);
+		  corpus.setCorpusToDefault();
 		}
 		
 		if(!filesExist(multirDirs)){
