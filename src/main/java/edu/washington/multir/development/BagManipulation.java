@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -24,6 +25,8 @@ public class BagManipulation {
 	
 	private static Random r = new Random(1);
 	private static String newArgSuffix = "%";
+	private static int counter = 0;
+	private static String groupedPrefix = "grouped-";
 
 
 	public static void main (String[] args) throws IOException{
@@ -37,7 +40,7 @@ public class BagManipulation {
 				(new FileInputStream(pathToTrain)));
 		
 		
-		Map<Set<Integer>,Set<MILDocument>> relationMentionMap = new HashMap<>();
+		Map<int[],List<SparseBinaryVector>> relationMentionMap = new HashMap<>();
 		List<MILDocument> splitBags = new ArrayList<>();
 		
 		while (d.read(dis)) {
@@ -48,12 +51,14 @@ public class BagManipulation {
 			
 			//if d num mentions < 5
 			else if(d.Y.length > 0 && d.numMentions < 5){
-				Set<Integer> relSet = new HashSet<>();
-				for(Integer rel : d.Y){
-					relSet.add(rel);
+				List<SparseBinaryVector> mentionFeaturesList = Arrays.asList(d.features); 
+				if(relationMentionMap.containsKey(d.Y)){
+					for(SparseBinaryVector mentionFeatures : mentionFeaturesList){
+						relationMentionMap.get(d.Y).add(mentionFeatures);
+					}
 				}
-				if(relationMentionMap.containsKey(relSet)){
-					relationMentionMap.get(relSet).add(d);
+				else{
+					relationMentionMap.put(d.Y, mentionFeaturesList);
 				}
 			}
 			
@@ -73,6 +78,45 @@ public class BagManipulation {
 		
 		//write split mildocs
 		for(MILDocument md : splitBags){
+			md.write(dos);
+		}
+		
+		//for each relation type with entity pairs with less than 5 mentions, shuffle all entity pairs, and group 
+		//into sets of 5 as new MILDOcuments
+		List<MILDocument> newBags = new ArrayList<>();
+		for(int[] relKey : relationMentionMap.keySet()){
+			List<SparseBinaryVector> mentionFeatures = relationMentionMap.get(relKey);
+			Collections.shuffle(mentionFeatures, r);
+			MILDocument md;
+			int start = 0;
+			String relKeyString = String.valueOf(relKey[0]);
+			for(int i = 1; i < relKey.length; i++){
+				relKeyString += "-"+relKey[i];
+			}
+			
+			for(int i =5; i < mentionFeatures.size(); i+=5){
+				md = new MILDocument();
+				md.numMentions = 5;
+				md.arg1 = groupedPrefix+relKeyString+newArgSuffix+counter;
+				counter++;
+				md.arg2 = groupedPrefix+relKeyString+newArgSuffix+counter;
+				counter++;
+				md.features = (SparseBinaryVector[]) mentionFeatures.subList(start, i).toArray();
+				md.Z = new int[md.numMentions];
+				md.mentionIDs = new int[md.numMentions];
+				for(int j =0; j < md.numMentions; j++){
+					md.Z[j] = -1;
+					md.mentionIDs[j] = j;
+				}
+				
+				
+				start = i;
+				
+				
+			}
+		}
+		
+		for(MILDocument md: newBags){
 			md.write(dos);
 		}
 		
