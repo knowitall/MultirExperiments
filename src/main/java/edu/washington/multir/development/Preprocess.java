@@ -317,7 +317,14 @@ public class Preprocess {
 		    			sv.ids[pos++] = fts[i];
 		    	
 	    	}
-	    	if(doc.numMentions>mentionThreshold) doc.write(os);
+	    	if(doc.Y.length > 0 ){
+	    	  if(doc.numMentions>mentionThreshold){
+	    		  doc.write(os);
+	    	  }
+	    	}
+	    	else{
+	    		doc.write(os);
+	    	}
 	    	count ++;
 	    	
 	    	if(count % 100000 == 0){
