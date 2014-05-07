@@ -56,6 +56,8 @@ public class TrainModel {
 						File oldTrain = new File(newModelFile.getAbsolutePath()+"/train");
 						oldTrain.renameTo(new File(newModelFile.getAbsolutePath()+"/train.old"));
 						File newTrain = new File(newModelFile.getAbsolutePath()+"/train");
+						newTrain.createNewFile();
+						oldTrain = new File(newModelFile.getAbsolutePath()+"/train.old");
 						BagManipulation.run(oldTrain.getAbsolutePath(), newTrain.getAbsolutePath(), minBagSize);
 					}
 					randomSeed++;
