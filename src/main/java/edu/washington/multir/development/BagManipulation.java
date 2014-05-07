@@ -42,7 +42,7 @@ public class BagManipulation {
 				(new FileInputStream(pathToTrain)));
 		
 		
-		Map<Integer,List<SparseBinaryVector>> relationMentionMap = new HashMap<>();
+		Map<List<Integer>,List<SparseBinaryVector>> relationMentionMap = new HashMap<>();
 		List<MILDocument> splitBags = new ArrayList<>();
 		
 		while (d.read(dis)) {
@@ -52,18 +52,23 @@ public class BagManipulation {
 			}
 			
 			//if d num mentions < 5
-			else if(d.Y.length == 1 && d.numMentions < 5){
+			else if(d.Y.length > 0 && d.numMentions < 5){
 				List<SparseBinaryVector> mentionFeaturesList = new ArrayList<>();
+				List<Integer> relKey = new ArrayList<>();
+				for(int y : d.Y){
+					relKey.add(y);
+				}
+				
 				for(SparseBinaryVector sbv: d.features){
 					if(sbv != null) mentionFeaturesList.add(sbv.copy());
 				}
-				if(relationMentionMap.containsKey(d.Y[0])){
+				if(relationMentionMap.containsKey(relKey)){
 					for(SparseBinaryVector mentionFeatures : mentionFeaturesList){
-						relationMentionMap.get(d.Y[0]).add(mentionFeatures);
+						relationMentionMap.get(relKey).add(mentionFeatures);
 					}
 				}
 				else{
-					relationMentionMap.put(d.Y[0], mentionFeaturesList);
+					relationMentionMap.put(relKey, mentionFeaturesList);
 				}
 			}
 			
@@ -90,7 +95,7 @@ public class BagManipulation {
 		//into sets of 5 as new MILDOcuments
 		List<MILDocument> newBags = new ArrayList<>();
 		System.out.println(relationMentionMap.keySet().size());
-		for(Integer relKey : relationMentionMap.keySet()){
+		for(List<Integer> relKey : relationMentionMap.keySet()){
 			List<SparseBinaryVector> mentionFeatures = relationMentionMap.get(relKey);
 			Collections.shuffle(mentionFeatures, r);
 			MILDocument md;
@@ -111,7 +116,10 @@ public class BagManipulation {
 					md.Z[j] = -1;
 					md.mentionIDs[j] = j;
 				}
-				md.Y=new int[]{relKey};
+				md.Y= new int[relKey.size()];
+				for(int j = 0; j < relKey.size(); j++){
+					md.Y[j] = relKey.get(j);
+				}
 				newBags.add(md);
 				start = i;
 				
@@ -139,7 +147,10 @@ public class BagManipulation {
 					md.Z[j] = -1;
 					md.mentionIDs[j] = j;
 				}
-				md.Y=new int[] {relKey};
+				md.Y=new int[relKey.size()];
+				for(int j = 0; j < relKey.size(); j++){
+					md.Y[j] = relKey.get(j);
+				}
 				if(md.numMentions != md.features.length){
 					System.out.println("numMentions = " + md.numMentions);
 					System.out.println("size of features = " + md.features.length);
