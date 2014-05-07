@@ -97,8 +97,10 @@ public class RelatedLocationMap {
 			}
 			else{
 				for(String tId: containedInSet){
-					containedInLocations.add(tId);
-					getContainedInLocations(tId,containedInLocations);
+					if(!containedInLocations.contains(tId)){
+						containedInLocations.add(tId);
+						getContainedInLocations(tId,containedInLocations);
+					}
 				}
 			}
 		}
@@ -116,8 +118,10 @@ public class RelatedLocationMap {
 			}
 			else{
 				for(String tId: containsSet){
-					containsLocations.add(tId);
-					getContainsLocations(tId,containsLocations);
+					if(!containsLocations.contains(tId)){
+						containsLocations.add(tId);
+						getContainsLocations(tId,containsLocations);
+					}
 				}
 			}
 		}
