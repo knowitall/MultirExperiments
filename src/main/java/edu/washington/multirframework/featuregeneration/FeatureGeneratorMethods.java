@@ -25,14 +25,17 @@ import edu.mit.jwi.Dictionary;
 import edu.mit.jwi.item.IIndexWord;
 import edu.mit.jwi.item.IIndexWordID;
 import edu.mit.jwi.item.ISynset;
+import edu.mit.jwi.item.ISynsetID;
 import edu.mit.jwi.item.IWord;
 import edu.mit.jwi.item.IWordID;
 import edu.mit.jwi.item.POS;
+import edu.mit.jwi.item.Pointer;
 import edu.mit.jwi.morph.WordnetStemmer;
 
 public class FeatureGeneratorMethods {
 	
 	public static final String PAD = "#PAD#";
+	public static int level = 1;
 	
 	
 	public static Set<String> acceptablePPChunkTokens = new HashSet<String>();
@@ -54,7 +57,7 @@ public class FeatureGeneratorMethods {
 	 negativeWords.add("n't");
 	 
 	 
-		d = new Dictionary(new File("/scratch2/resources/WordNet-3.0/WN/dict"));
+		d = new Dictionary(new File("/home/jgilme1/Tools/WordNet-3.0/dict"));
 		try {
 			d.open();
 		} catch (IOException e) {
@@ -557,8 +560,9 @@ public class FeatureGeneratorMethods {
 		return sb.toString().trim();
 	}
 	
-	private static String getWordnetNounLemma(String word){
+	public static String getWordnetNounLemma(String word){
 		ISynset s = getWordnetNounSynset(word);
+
 		
 		if(s!=null){
 			return s.getWord(1).getLemma();
@@ -566,6 +570,23 @@ public class FeatureGeneratorMethods {
 		else{
 			return null;
 		}
+	}
+	
+	public static String getWordnet2NounLemma(String word){
+		ISynset s = getWordnetNounSynset(word);
+		if(s!=null){
+			List<ISynsetID> hypernymIds = s.getRelatedSynsets(Pointer.HYPERNYM);
+			ISynset hyper = null;
+			if(hypernymIds.size() == 1){
+				hyper = d.getSynset(hypernymIds.get(0));
+			}
+	
+			
+			if(hyper!=null){
+				return hyper.getWord(1).getLemma();
+			}
+		}
+		return null;
 	}
 	
 	private static ISynset getWordnetNounSynset(String word){
@@ -608,11 +629,18 @@ public class FeatureGeneratorMethods {
 		}
 		
 		if(lastS != null) {
-			return lastS.getWord(1).getLemma();
+			if(level == 1) {
+				return lastS.getWord(1).getLemma();
+			}
+			else if(level ==2) {
+				List<ISynsetID> hypernyms = lastS.getRelatedSynsets(Pointer.HYPERNYM);
+				if(hypernyms.size() == 1){
+					return d.getSynset(hypernyms.get(0)).getWord(1).getLemma();
+				}
+			}
 		}
-		else{
-			return null;
-		}
+		return null;
+
 		
 		
 	}
@@ -633,7 +661,7 @@ public class FeatureGeneratorMethods {
 		return null;
 	}
 
-	private static String findHeadEntityType(List<CoreLabel> sequence) {
+	public static String findHeadEntityType(List<CoreLabel> sequence) {
 		CoreLabel lastToken = sequence.get(sequence.size()-1);
 		String type = lastToken.get(CoreAnnotations.NamedEntityTagAnnotation.class);
 		if(type != null){

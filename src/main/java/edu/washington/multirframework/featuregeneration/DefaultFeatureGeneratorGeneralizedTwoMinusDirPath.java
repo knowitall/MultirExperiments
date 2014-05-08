@@ -69,16 +69,16 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 		List<Triple<CoreLabel,DependencyType,CoreLabel>> dependencyPathRightWindow = FeatureGeneratorMethods.getDependencyPathWindow(rightArgOffsets.second, sentence);
 		
 		//leftWindow
-		System.out.println("Printing left dep windows");
-		for(Triple<CoreLabel,DependencyType,CoreLabel> t: dependencyPathLeftWindow){
-			System.out.println(t.first.get(CoreAnnotations.TextAnnotation.class) + "\t" + t.second + "\t" +t.third.get(CoreAnnotations.TextAnnotation.class));
-		}
+		//System.out.println("Printing left dep windows");
+//		for(Triple<CoreLabel,DependencyType,CoreLabel> t: dependencyPathLeftWindow){
+//			System.out.println(t.first.get(CoreAnnotations.TextAnnotation.class) + "\t" + t.second + "\t" +t.third.get(CoreAnnotations.TextAnnotation.class));
+//		}
 		
-		
-		System.out.println("Printing right dep windows");
-		for(Triple<CoreLabel,DependencyType,CoreLabel> t: dependencyPathRightWindow){
-			System.out.println(t.first.get(CoreAnnotations.TextAnnotation.class) + "\t" + t.second + "\t" +t.third.get(CoreAnnotations.TextAnnotation.class));
-		}
+//		
+//		System.out.println("Printing right dep windows");
+//		for(Triple<CoreLabel,DependencyType,CoreLabel> t: dependencyPathRightWindow){
+//			System.out.println(t.first.get(CoreAnnotations.TextAnnotation.class) + "\t" + t.second + "\t" +t.third.get(CoreAnnotations.TextAnnotation.class));
+//		}
 
 		
 
@@ -88,13 +88,27 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 		List<CoreLabel> rightTokens = FeatureGeneratorMethods.getRightWindowTokens(rightArgOffsets.second, tokens);
 
 		// generalize tokens
+		FeatureGeneratorMethods.level =1;
 		List<String> generalMiddleTokens = FeatureGeneratorMethods.getGeneralSequence(middleTokens);
 		List<String> generalLeftTokens = FeatureGeneratorMethods.getGeneralSequence(leftTokens);
 		List<String> generalRightTokens = FeatureGeneratorMethods.getGeneralSequence(rightTokens);
 
+
 		String middleGeneralizedTokenSequenceFeature = makeSequenceFeature(generalMiddleTokens,inverseFeature,typeFeature,MIDDLE_PREFIX,GENERAL_FEATURE);
 		String leftGeneralizedTokenSequenceFeature = makeSequenceFeature(generalLeftTokens.subList(Math.max(generalLeftTokens.size()-3,0), generalLeftTokens.size()),LEFT_PREFIX);
 		String rightGeneralizedTokenSequenceFeature = makeSequenceFeature(generalRightTokens.subList(0,Math.min(generalRightTokens.size(), 3)),RIGHT_PREFIX);
+		if(isGeneralized(middleGeneralizedTokenSequenceFeature)) features.add(middleGeneralizedTokenSequenceFeature);
+		if(isGeneralized(middleGeneralizedTokenSequenceFeature+ " "+leftGeneralizedTokenSequenceFeature))features.add(middleGeneralizedTokenSequenceFeature+ " "+leftGeneralizedTokenSequenceFeature);
+		if(isGeneralized(middleGeneralizedTokenSequenceFeature+ " "+ rightGeneralizedTokenSequenceFeature))features.add(middleGeneralizedTokenSequenceFeature+ " "+ rightGeneralizedTokenSequenceFeature);
+		
+		FeatureGeneratorMethods.level =2;
+		List<String> generalMiddleTokens2 = FeatureGeneratorMethods.getGeneralSequence(middleTokens);
+		List<String> generalLeftTokens2 = FeatureGeneratorMethods.getGeneralSequence(leftTokens);
+		List<String> generalRightTokens2 = FeatureGeneratorMethods.getGeneralSequence(rightTokens);
+		
+		middleGeneralizedTokenSequenceFeature = makeSequenceFeature(generalMiddleTokens2,inverseFeature,typeFeature,MIDDLE_PREFIX,GENERAL_FEATURE);
+		leftGeneralizedTokenSequenceFeature = makeSequenceFeature(generalLeftTokens2.subList(Math.max(generalLeftTokens.size()-3,0), generalLeftTokens.size()),LEFT_PREFIX);
+		rightGeneralizedTokenSequenceFeature = makeSequenceFeature(generalRightTokens2.subList(0,Math.min(generalRightTokens.size(), 3)),RIGHT_PREFIX);
 		if(isGeneralized(middleGeneralizedTokenSequenceFeature)) features.add(middleGeneralizedTokenSequenceFeature);
 		if(isGeneralized(middleGeneralizedTokenSequenceFeature+ " "+leftGeneralizedTokenSequenceFeature))features.add(middleGeneralizedTokenSequenceFeature+ " "+leftGeneralizedTokenSequenceFeature);
 		if(isGeneralized(middleGeneralizedTokenSequenceFeature+ " "+ rightGeneralizedTokenSequenceFeature))features.add(middleGeneralizedTokenSequenceFeature+ " "+ rightGeneralizedTokenSequenceFeature);
@@ -105,20 +119,26 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 			String generalizedMiddleDependencySequenceFeature = makeFeature(
 					getDependencyPathSequenceFeature(dependencyPathMiddleTokens,GeneralizationClass.First),
 					inverseFeature,typeFeature,DEP_Feature,GENERAL_FEATURE);
+			String generalizedMiddleDependencySequenceFeature2 = makeFeature(
+					getDependencyPathSequenceFeature(dependencyPathMiddleTokens,GeneralizationClass.Second),
+					inverseFeature,typeFeature,DEP_Feature,GENERAL_FEATURE);
 			String feature = generalizedMiddleDependencySequenceFeature;
 			if(isGeneralized(feature)) features.add(feature);
 			for(Triple<CoreLabel,DependencyType,CoreLabel> depWindow : dependencyPathLeftWindow){
 				List<Triple<CoreLabel,DependencyType,CoreLabel>> depList = new ArrayList<>();
 				depList.add(depWindow);
-				feature = makeFeature(getDependencyPathSequenceFeature(depList,GeneralizationClass.First) + generalizedMiddleDependencySequenceFeature);
-				System.out.println(feature);
+				feature = generalizedMiddleDependencySequenceFeature + makeFeature(dependencyPathSingleFeature(depWindow,GeneralizationClass.First),LEFT_PREFIX);
 				if(isGeneralized(feature)) features.add(feature);
+				feature = generalizedMiddleDependencySequenceFeature2 + makeFeature(dependencyPathSingleFeature(depWindow,GeneralizationClass.Second),LEFT_PREFIX);
+				if(isGeneralized(feature)) features.add(feature);
+
 			}
 			for(Triple<CoreLabel,DependencyType,CoreLabel> depWindow : dependencyPathRightWindow){
 				List<Triple<CoreLabel,DependencyType,CoreLabel>> depList = new ArrayList<>();
 				depList.add(depWindow);
-				feature = generalizedMiddleDependencySequenceFeature + makeFeature(getDependencyPathSequenceFeature(depList,GeneralizationClass.First));
-				System.out.println(feature);
+				feature = generalizedMiddleDependencySequenceFeature + makeFeature(dependencyPathSingleFeature(depWindow,GeneralizationClass.First),RIGHT_PREFIX);
+				if(isGeneralized(feature)) features.add(feature);
+				feature = generalizedMiddleDependencySequenceFeature2 + makeFeature(dependencyPathSingleFeature(depWindow,GeneralizationClass.Second),RIGHT_PREFIX);
 				if(isGeneralized(feature)) features.add(feature);
 			}
 			
@@ -132,7 +152,8 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
                 features.addAll(OldFeatureGenerator.generateFeatures(arg1StartOffset, arg1EndOffset, arg2StartOffset, arg2EndOffset, arg1ID, arg2ID,
                                                                      sentence, document));
 
-		return features;
+        Set<String> featureSet = new HashSet<>(features);
+		return new ArrayList<>(featureSet);
 	}
 
 
@@ -159,7 +180,30 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 					if(lemma != null){
 						text = lemma;
 					}
+					else{
+					  List<CoreLabel> tokenList = new ArrayList<>();
+					  tokenList.add(trip.third);
+					  String nerString = FeatureGeneratorMethods.findHeadEntityType(tokenList);
+					  if(nerString!=null){
+						  text = "N(" + nerString + ")";
+					  }
+					}
 					break;
+				case Second:
+					lemma = FeatureGeneratorMethods.getWordnet2NounLemma(trip.third.get(CoreAnnotations.TextAnnotation.class));
+					if(lemma != null){
+						text = "N("+lemma+")";
+					}
+					else{
+					  List<CoreLabel> tokenList = new ArrayList<>();
+					  tokenList.add(trip.third);
+					  String nerString = FeatureGeneratorMethods.findHeadEntityType(tokenList);
+					  if(nerString!=null){
+						  text = "N(" + nerString + ")";
+					  }
+					}
+					break;
+					
 				default:
 					break;
 				}
@@ -173,7 +217,48 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 	
 	//private String getDependencyPath
 
-
+    private String dependencyPathSingleFeature(Triple<CoreLabel, DependencyType, CoreLabel> depInfo,
+    		GeneralizationClass gc){
+		StringBuilder featureBuilder = new StringBuilder();
+		featureBuilder.append(depInfo.second);
+		String text = depInfo.third.get(CoreAnnotations.TextAnnotation.class);
+		switch(gc){
+		case None:
+			break;
+		case First:
+			String lemma = FeatureGeneratorMethods.getWordnetStemFeature(depInfo.third);
+			if(lemma != null){
+				text = lemma;
+			}
+			else{
+			  List<CoreLabel> tokenList = new ArrayList<>();
+			  tokenList.add(depInfo.third);
+			  String nerString = FeatureGeneratorMethods.findHeadEntityType(tokenList);
+			  if(nerString!=null){
+				  text = "N(" + nerString + ")";
+			  }
+			}
+			break;
+		case Second:
+			lemma = FeatureGeneratorMethods.getWordnet2NounLemma(depInfo.third.get(CoreAnnotations.TextAnnotation.class));
+			if(lemma != null){
+				text = "N("+lemma+")";
+			}
+			else{
+			  List<CoreLabel> tokenList = new ArrayList<>();
+			  tokenList.add(depInfo.third);
+			  String nerString = FeatureGeneratorMethods.findHeadEntityType(tokenList);
+			  if(nerString!=null){
+				  text = "N(" + nerString + ")";
+			  }
+			}
+			break;
+		default:
+			break;
+		}
+	    featureBuilder.append(text);
+		return featureBuilder.toString().trim();
+    }
 
 
 
@@ -257,7 +342,7 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 		cis.addSentenceInformation(sentInfo);
 		cis.addTokenInformation(tokInfo);
 		Corpus c = new Corpus("jdbc:derby://rv-n14.cs.washington.edu:49152//scratch2/usr/jgilme1/FullCorpus",cis,true);
-		c.setCorpusToTest("/projects/WebWare6/Multir/MultirSystem/files/testDocuments");
+		//c.setCorpusToTest("/projects/WebWare6/Multir/MultirSystem/files/testDocuments");
 		
 		Set<Integer> sentIds = new HashSet<>();
 		sentIds.add(27342657);
