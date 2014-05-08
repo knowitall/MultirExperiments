@@ -54,7 +54,7 @@ public class FeedbackNegativeDistantSupervision {
 	private static long newMidCount =0;
 	private static final String MID_BASE = "MID";
 	private static Map<String,List<String>> idToAliasMap = null;
-	private static boolean print = false;
+	private static boolean print = true;
 	private static RelatedLocationMap rlm = null;
 	
 	public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, ParseException, NoSuchMethodException, SecurityException, IllegalArgumentException, InvocationTargetException, SQLException, IOException{
@@ -160,7 +160,8 @@ public class FeedbackNegativeDistantSupervision {
 		}
 
 		
-		
+		List<DS> candidateNegativeExamples = new ArrayList<>();
+		Set<Integer> relevantSentIds = new HashSet<>();
 		//Run extractor over corpus, get new extractions
 		Iterator<Annotation> di =trainCorpus.getDocumentIterator();
 		int docCount =0;
@@ -188,10 +189,14 @@ public class FeedbackNegativeDistantSupervision {
 								String arg1Id = getArgId(doc,sentence,p.first);
 								String arg2Id = getArgId(doc,sentence,p.second);
 								if(arg1Id != null && arg2Id!= null){
-									if(isTrueNegative(kb,doc,sentence,p.first,p.second,rel,arg1Id,arg2Id)){
-										DS ds =  new DS(p.first,p.second,arg1Id,arg2Id,sentNum,rel);
+									if(kb.participatesInRelationAsArg1(arg1Id, rel)){
+									//if(isTrueNegative(kb,doc,sentence,p.first,p.second,rel,arg1Id,arg2Id)){
+										DS ds =  new DS(p.first,p.second,arg1Id,arg2Id,sentNum,rel,modelPath);
 										ds.score = extrScoreTriple.third;
-										newNegativeAnnotations.add(ds);
+										relevantSentIds.add(sentNum);
+										//newNegativeAnnotations.add(ds);
+										candidateNegativeExamples.add(ds);
+									//}
 									}
 								}
 							}
@@ -203,10 +208,64 @@ public class FeedbackNegativeDistantSupervision {
 			if(docCount % 1000 == 0){
 				System.out.println(docCount + " docs processed");
 			}
-			if(docCount == 13000){
-				break;
+		}
+		
+		//get set of all argument tokens
+		Set<String> argTokens = new HashSet<>();
+		for(DS ds: candidateNegativeExamples){
+			argTokens.addAll(getValidTokens(ds.arg1.getArgName()));
+			argTokens.addAll(getValidTokens(ds.arg2.getArgName()));
+			List<String> arg1Aliases = idToAliasMap.get(ds.arg1ID);
+			if(arg1Aliases!=null){
+				for(String alias: arg1Aliases){
+					argTokens.addAll(getValidTokens(alias));
+				}
+			}
+			List<String> arg2Aliases = idToAliasMap.get(ds.arg2ID);
+			if(arg2Aliases!=null){
+				for(String alias: arg2Aliases){
+					argTokens.addAll(getValidTokens(alias));
+				}
 			}
 		}
+		
+		//make map from argument tokens to list of candidate entities
+		Map<String,Set<String>> tokenCandidateMap = new HashMap<>();
+		for(String idKey : idToAliasMap.keySet()){
+			List<String> aliases = idToAliasMap.get(idKey);
+			for(String alias: aliases){
+				for(String token : argTokens){
+					for(String aliasToken: alias.split("\\s+")){
+						if(aliasToken.equals(token)){
+							if(tokenCandidateMap.containsKey(token)){
+								tokenCandidateMap.get(token).add(idKey);
+							}
+							else{
+								Set<String> candidateIds = new HashSet<>();
+								candidateIds.add(idKey);
+								tokenCandidateMap.put(token, candidateIds);
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		Map<Integer,Pair<CoreMap,Annotation>> corpusData = trainCorpus.getAnnotationPairsForEachSentence(relevantSentIds);
+		
+		//iterate over candidate negative examples and text for being true negatives
+		for(DS ds: candidateNegativeExamples){
+			try{
+				if(isTrueNegative(kb,corpusData.get(ds.sentNum).second,corpusData.get(ds.sentNum).first,ds.arg1,ds.arg2,ds.relation,ds.arg1ID,ds.arg2ID,tokenCandidateMap)){
+					modelDataMap.get(ds.modelPath).newNegativeAnnotations.add(ds);
+				}
+			}
+			catch(Exception e){
+				System.err.print(e.getMessage());
+			}
+
+		}
+		
 
 		FigerTypeUtils.close();
 
@@ -373,7 +432,8 @@ public class FeedbackNegativeDistantSupervision {
 	}
 
 	private static boolean isProbablyNegative(KnowledgeBase kb, Argument first,
-			Argument second, String arg1Id, String arg2Id, String rel, CoreMap sentence) {
+			Argument second, String arg1Id, String arg2Id, String rel, CoreMap sentence,
+			Map<String,Set<String>> tokenCandidateMap) {
 		
 		
 		
@@ -383,14 +443,14 @@ public class FeedbackNegativeDistantSupervision {
 //		}
 		
 		
-		List<String> arg1Ids = getCandidates(kb,first,arg1Id,rel,sentence); 
+		List<String> arg1Ids = getCandidates(kb,first,arg1Id,rel,sentence,tokenCandidateMap); 
 		if(arg1Ids.size() == 0) {
 			if(print) System.out.println("Arg1 has no candidates " +first.getArgName() + " " + arg1Id);
 			return false;
 		}
 		
 		
-		List<String> arg2Ids = getCandidates(kb,second,arg2Id,sentence);
+		List<String> arg2Ids = getCandidates(kb,second,arg2Id,sentence,tokenCandidateMap);
 		if(arg2Ids.size() == 0) {
 			if(print) System.out.println("Arg2 has no candidates " +second.getArgName() + " " + arg2Id);
 			return false;
@@ -428,6 +488,72 @@ public class FeedbackNegativeDistantSupervision {
 	}
 
 
+
+	private static List<String> getCandidates(KnowledgeBase kb,
+			Argument arg, String argId, CoreMap sentence,
+			Map<String, Set<String>> tokenCandidateMap) {
+		
+		Set<String> validTokens = new HashSet<>();
+		Set<String> entityIds = new HashSet<>();
+		validTokens.addAll(getValidTokens(arg.getArgName()));
+		
+		List<String> aliases = idToAliasMap.get(argId);
+		if(aliases == null){
+			return new ArrayList<>();
+		}
+		for(String alias: aliases){
+			validTokens.addAll(getValidTokens(alias));
+		}
+		
+		for(String tok: validTokens){
+			Set<String> candidateIds = tokenCandidateMap.get(tok);
+			if(candidateIds != null){
+				entityIds.addAll(candidateIds);
+			}
+		}
+		entityIds.add(argId);
+		
+		if(TypeConstraintUtils.getNERType(arg,sentence.get(CoreAnnotations.TokensAnnotation.class)).equals("LOCATION")){
+			entityIds.addAll(getRelatedLocations(argId));
+		}
+		
+		return new ArrayList<>(entityIds);
+	}
+
+	private static List<String> getCandidates(KnowledgeBase kb, Argument first,
+			String arg1Id, String rel, CoreMap sentence,
+			Map<String, Set<String>> tokenCandidateMap) {
+		if(kb.participatesInRelationAsArg1(arg1Id, rel)){
+			Set<String> entityIds = new HashSet<>();
+			Set<String> validTokens = new HashSet<>();
+			validTokens.addAll(getValidTokens(first.getArgName()));
+			
+			List<String> aliases = idToAliasMap.get(arg1Id);
+			if(aliases == null){
+				return new ArrayList<>();
+			}
+			for(String alias: aliases){
+				validTokens.addAll(getValidTokens(alias));
+			}
+			
+			for(String tok: validTokens){
+				Set<String> candidateIds = tokenCandidateMap.get(tok);
+				if(candidateIds != null){
+					entityIds.addAll(candidateIds);
+				}
+			}
+			entityIds.add(arg1Id);
+			
+			if(TypeConstraintUtils.getNERType(first,sentence.get(CoreAnnotations.TokensAnnotation.class)).equals("LOCATION")){
+				entityIds.addAll(getRelatedLocations(arg1Id));
+			}
+			
+			if(entityIds.contains(arg1Id)) {
+				return new ArrayList<>(entityIds);
+			}
+		}
+		return new ArrayList<>();
+	}
 
 	private static List<String> getCandidates(KnowledgeBase kb, Argument first,
 			String arg1Id, String rel, CoreMap sentence) {
@@ -694,7 +820,9 @@ public class FeedbackNegativeDistantSupervision {
 		return "null";
 	}
 
-	private static boolean isTrueNegative(KnowledgeBase KB, Annotation doc, CoreMap sentence, Argument arg1, Argument arg2, String extractionRel, String arg1Id, String arg2Id) {
+	private static boolean isTrueNegative(KnowledgeBase KB, Annotation doc, CoreMap sentence, Argument arg1, Argument arg2, 
+			String extractionRel, String arg1Id, String arg2Id,
+			Map<String,Set<String>> tokenCandidateMap) {
 		if(print){
 			System.out.println("arg1  = " + arg1.getArgName());
 			System.out.println("link1 = " + arg1Id);
@@ -710,7 +838,7 @@ public class FeedbackNegativeDistantSupervision {
 
 
 		if(isPromininent(arg1Id)){
-			if(isProbablyNegative(KB,arg1,arg2,arg1Id,arg2Id,extractionRel,sentence)){
+			if(isProbablyNegative(KB,arg1,arg2,arg1Id,arg2Id,extractionRel,sentence,tokenCandidateMap)){
 				if(print) System.out.println("Arg pair is probably negative");
 				return true;
 			}
@@ -762,14 +890,16 @@ public class FeedbackNegativeDistantSupervision {
 		private Integer sentNum;
 		private String relation;
 		private Double score;
+		private String modelPath;
 		
-		public DS(Argument arg1, Argument arg2, String arg1ID, String arg2ID, Integer sentNum,String relation){
+		public DS(Argument arg1, Argument arg2, String arg1ID, String arg2ID, Integer sentNum,String relation,String modelPath){
 			this.arg1=arg1;
 			this.arg2=arg2;
 			this.arg1ID=arg1ID;
 			this.arg2ID=arg2ID;
 			this.sentNum=sentNum;
 			this.relation=relation;
+			this.modelPath = modelPath;
 		}
 		
 		@Override

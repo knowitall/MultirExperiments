@@ -15,10 +15,10 @@ public class RelatedLocationMap {
 	
 	private Map<String,Set<String>> containsMap = new HashMap<>();
 	private Map<String,Set<String>> containedInMap = new HashMap<>();
+	private static String defaultPath = "/projects/WebWare6/Multir/MultirSystem/files/kbfiles/fb-rels-all.tsv.gz";
 	
 	
-	private RelatedLocationMap() throws IOException{
-		String relFile = "/projects/WebWare6/Multir/MultirSystem/files/kbfiles/fb-rels-all.tsv.gz";
+	private RelatedLocationMap(String relFile) throws IOException{
 		
 		BufferedReader relationReader = BufferedIOUtils.getBufferedReader(new File(relFile));
 		int index =0;
@@ -62,10 +62,19 @@ public class RelatedLocationMap {
 	public static RelatedLocationMap getInstance() throws IOException{
 		
 		if(instance == null){
-			instance = new RelatedLocationMap();
+			instance = new RelatedLocationMap(defaultPath);
 		}
 		return instance;
 	}
+	
+	public static RelatedLocationMap getInstance(String relFile) throws IOException{
+		
+		if(instance == null){
+			instance = new RelatedLocationMap(relFile);
+		}
+		return instance;
+	}
+	
 	
 	
 	
