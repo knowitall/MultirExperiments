@@ -57,7 +57,7 @@ public class FeatureGeneratorMethods {
 	 negativeWords.add("n't");
 	 
 	 
-		d = new Dictionary(new File("/home/jgilme1/Tools/WordNet-3.0/dict"));
+		d = new Dictionary(new File("/scratch2/resources/WordNet-3.0/WN/dict"));
 		try {
 			d.open();
 		} catch (IOException e) {
