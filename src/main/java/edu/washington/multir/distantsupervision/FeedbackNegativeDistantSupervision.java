@@ -209,6 +209,8 @@ public class FeedbackNegativeDistantSupervision {
 				System.out.println(docCount + " docs processed");
 			}
 		}
+		System.out.println("Finished making Extractions");
+		System.out.println("There are " + candidateNegativeExamples.size() + " negative candidate extractions");
 		
 		//get set of all argument tokens
 		Set<String> argTokens = new HashSet<>();
@@ -228,9 +230,14 @@ public class FeedbackNegativeDistantSupervision {
 				}
 			}
 		}
+		System.out.println("Created set of all argument Tokens.");
+		System.out.println("There are " + argTokens.size() + " unique argument tokens");
 		
+		
+		System.out.println("Creating map from arg tokens to candidate entity ids....");
 		//make map from argument tokens to list of candidate entities
 		Map<String,Set<String>> tokenCandidateMap = new HashMap<>();
+		int idCount =0;
 		for(String idKey : idToAliasMap.keySet()){
 			List<String> aliases = idToAliasMap.get(idKey);
 			for(String alias: aliases){
@@ -249,9 +256,24 @@ public class FeedbackNegativeDistantSupervision {
 					}
 				}
 			}
+			idCount++;
+			if(idCount % 10000 == 0){
+				System.out.println(idCount + " entity ids processed out of " + idToAliasMap.keySet().size());
+			}
+			
 		}
+		System.out.println("Finished constructing map from arg keys to entity ids");
 		
-		Map<Integer,Pair<CoreMap,Annotation>> corpusData = trainCorpus.getAnnotationPairsForEachSentence(relevantSentIds);
+		List<Integer> relevantSentIdList = new ArrayList<>(relevantSentIds);
+		List<Set<Integer>> subSentIdSets = new ArrayList<>();
+		for(int i =0; i < relevantSentIdList.size(); i+=100){
+			subSentIdSets.add(new HashSet<>(relevantSentIdList.subList(i, Math.min(relevantSentIdList.size(),i+100))));
+		}
+		Map<Integer,Pair<CoreMap,Annotation>> corpusData = new HashMap<>();
+		for(Set<Integer> subSet : subSentIdSets){
+			corpusData.putAll(trainCorpus.getAnnotationPairsForEachSentence(subSet));
+		}
+		System.out.println("Got map from sentence id to annotation objects");
 		
 		//iterate over candidate negative examples and text for being true negatives
 		for(DS ds: candidateNegativeExamples){
