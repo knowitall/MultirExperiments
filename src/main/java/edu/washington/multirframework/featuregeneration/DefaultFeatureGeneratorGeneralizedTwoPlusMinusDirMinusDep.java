@@ -24,7 +24,8 @@ import edu.washington.multirframework.corpus.TokenInformationI;
 import edu.washington.multirframework.corpus.TokenOffsetInformation.SentenceRelativeCharacterOffsetBeginAnnotation;
 import edu.washington.multirframework.featuregeneration.FeatureGeneratorDraft3.DependencyType;
 
-public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements FeatureGenerator{
+public class DefaultFeatureGeneratorGeneralizedTwoPlusMinusDirMinusDep
+		implements FeatureGenerator {
 
 	private static final int WINDOW_SIZE = 2;
 	private static final String MIDDLE_PREFIX = "m:";
@@ -36,7 +37,7 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 	private static final String TYPE_FEATURE = "t:";
 	private static final String DEP_Feature = "dep:";
         private static List<String> defaultBigram;
-        private static DefaultFeatureGeneratorMinusDirPath OldFeatureGenerator = new DefaultFeatureGeneratorMinusDirPath();
+        private static DefaultFeatureGeneratorMinusDirMinusDep OldFeatureGenerator = new DefaultFeatureGeneratorMinusDirMinusDep();
 
 	static{
 		defaultBigram = new ArrayList<String>();
@@ -153,7 +154,13 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
                                                                      sentence, document));
 
         Set<String> featureSet = new HashSet<>(features);
-		return new ArrayList<>(featureSet);
+        List<String> returnFeatures = new ArrayList<>();
+        for(String f: featureSet){
+        	if(!f.contains("*LONG")){
+        		returnFeatures.add(f);
+        	}
+        }
+		return returnFeatures;
 	}
 
 
@@ -350,7 +357,7 @@ public class DefaultFeatureGeneratorGeneralizedTwoMinusDirPath implements Featur
 		Map<Integer,Pair<CoreMap,Annotation>> pairs =c.getAnnotationPairsForEachSentence(sentIds);
 		Pair<CoreMap,Annotation> pair = pairs.get(27342657);
 		
-		FeatureGenerator fg = new DefaultFeatureGeneratorGeneralizedTwoMinusDirPath();
+		FeatureGenerator fg = new DefaultFeatureGeneratorGeneralizedTwoPlusMinusDirMinusDep();
 		List<String> features = fg.generateFeatures(41, 52, 28, 39, "/m/03wfx84", "/m/0t8v1", pair.first, pair.second);
 		
 		System.out.println("Feature set 1");
