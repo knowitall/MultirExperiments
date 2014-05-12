@@ -44,6 +44,7 @@ import edu.washington.multirframework.multiralgorithm.Mappings;
 import edu.washington.multir.preprocess.CorpusPreprocessing;
 import edu.washington.multir.sententialextraction.DocumentExtractor;
 import edu.washington.multir.util.CLIUtils;
+import edu.washington.multir.util.ModelUtils;
 import edu.washington.multir.util.TypeConstraintUtils;
 
 public class SententialEvaluation {
@@ -187,6 +188,9 @@ public class SententialEvaluation {
 		for(int i =0; i < siglist.size(); i++){
 			SententialInstanceGeneration sig = siglist.get(i);
 	        DocumentExtractor de = new DocumentExtractor(models.get(i),fg,ai,sig);
+	        Mappings m = new Mappings();
+	        m.read(models.get(i)+"/mapping");
+	        ftID2ft = ModelUtils.getFeatureIDToFeatureMap(m);
 			for(Label a : annotations){
 				Extraction e= getExtraction(de,a);
 				if( e != null){
@@ -224,11 +228,15 @@ public class SententialEvaluation {
 				  useModel = true;
 			  }
 		  }
-		  if(useModel) result = de.extractFromSententialInstanceWithFeatureScores(arg1, arg2, sentences.get(0), doc);
+		  if(useModel) {
+
+			  result = de.extractFromSententialInstanceWithFeatureScores(arg1, arg2, sentences.get(0), doc);
+		  }
+
 
 		}
 		catch(Exception e){
-			
+			System.out.println(e.getMessage());
 		}
 		
 		
@@ -256,6 +264,7 @@ public class SententialEvaluation {
 			
 			//if(!a.r.rel.equals(r.rel)) 
 			System.out.println(e.ID +"\t" + r.rel + "\t" + r.arg1.getArgName() + "\t" + r.arg2.getArgName());
+			System.out.println(e.printFeatureScores());
 			return e;
 		}
 	}
