@@ -25,13 +25,17 @@ import edu.washington.multirframework.multiralgorithm.Parameters;
 import edu.washington.multirframework.multiralgorithm.Scorer;
 import edu.washington.multir.preprocess.CorpusPreprocessing;
 import edu.washington.multirframework.argumentidentification.ArgumentIdentification;
+import edu.washington.multirframework.argumentidentification.NELAndCorefArgumentIdentification;
 import edu.washington.multirframework.argumentidentification.NELArgumentIdentification;
 import edu.washington.multirframework.argumentidentification.NERArgumentIdentification;
 import edu.washington.multirframework.argumentidentification.DefaultSententialInstanceGeneration;
 import edu.washington.multirframework.argumentidentification.SententialInstanceGeneration;
+import edu.washington.multirframework.argumentidentification.TestArgumentIdentification;
 import edu.washington.multirframework.data.Argument;
 import edu.washington.multirframework.data.KBArgument;
 import edu.washington.multirframework.featuregeneration.DefaultFeatureGenerator;
+import edu.washington.multirframework.featuregeneration.DefaultFeatureGeneratorMinusDirMinusDep;
+import edu.washington.multirframework.featuregeneration.DefaultFeatureGeneratorMinusDirPath;
 import edu.washington.multirframework.featuregeneration.FeatureGenerator;
 /**
  * An extractor that provides extractions
@@ -112,8 +116,8 @@ public class DocumentExtractor {
 				Pair<Triple<String,Double,Double>,Map<Integer,Double>> result = getPrediction(features,arg1,arg2,senText);
 				if(result !=null){
 					Triple<String,Double,Double> relationScoreTriple = getPrediction(features,arg1,arg2,senText).first;
-					String extractionString = arg1.getArgName() + " " + relationScoreTriple.first + " " + arg2.getArgName() + "\n" + senText;
-					extractions.add(new Pair<String,Double>(extractionString,relationScoreTriple.third));
+						String extractionString = arg1.getArgName() + " " + relationScoreTriple.first + " " + arg2.getArgName() + "\n" + senText;
+						extractions.add(new Pair<String,Double>(extractionString,relationScoreTriple.third));
 				}
 			}
 		}
@@ -524,6 +528,8 @@ public class DocumentExtractor {
 		return p;
 	}
 	
+	
+	public SententialInstanceGeneration getSig(){return sig;}
 
 
 	public Mappings getMapping(){return mapping;}
@@ -538,7 +544,7 @@ public class DocumentExtractor {
 	public static void main(String[] args) throws IOException, InterruptedException{
 		
 		DocumentExtractor de = new DocumentExtractor(args[0],
-				new DefaultFeatureGenerator(), NERArgumentIdentification.getInstance(), DefaultSententialInstanceGeneration.getInstance());
+				new DefaultFeatureGeneratorMinusDirMinusDep(), NERArgumentIdentification.getInstance(), DefaultSententialInstanceGeneration.getInstance());
 		
 		String testDir = args[1];
 		File f = new File(args[1]);
