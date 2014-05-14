@@ -2,20 +2,25 @@ package edu.washington.multir.development;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+
+import com.google.code.externalsorting.ExternalSort;
 
 import edu.stanford.nlp.util.Pair;
 import edu.washington.multirframework.multiralgorithm.MILDocument;
@@ -33,7 +38,7 @@ import edu.washington.multirframework.multiralgorithm.SparseBinaryVector;
 public class Preprocess {
 	private static Map<String,Integer> keyToIntegerMap = new HashMap<String,Integer>();
     private static Map<Integer,String> intToKeyMap = new HashMap<Integer,String>();
-    private static final int FEATURE_THRESHOLD = 2;
+    public static int FEATURE_THRESHOLD = 2;
     
 
     private static final double GIGABYTE_DIVISOR = 1073741824;
@@ -46,11 +51,14 @@ public class Preprocess {
 	 */
 	public static void main(String[] args) 
 	throws IOException {
-            run(args[0],args[1],null,false,true,0);
+            run(args[0],args[1]);
 	}
-	
-	
-	public static void run(String featureFile, String trainDir, Random r, boolean collapseSentences, boolean useMultiLabels, int mentionThreshold) throws IOException{
+
+	public static void run (String featureFile, String trainDir) throws IOException{
+		run(featureFile,trainDir,FEATURE_THRESHOLD);
+	}
+	public static void run(String featureFile, String trainDir, Integer threshold) throws IOException{
+		FEATURE_THRESHOLD = threshold;
     	long start = System.currentTimeMillis();
     	
     	printMemoryStatistics();
@@ -68,7 +76,7 @@ public class Preprocess {
 			System.out.println("PREPROCESSING TRAIN FEATURES");
 		{
 			String output1 = outDir + File.separatorChar + "train";
-			convertFeatureFileToMILDocument(trainFile, output1, mapping,r,collapseSentences,useMultiLabels,mentionThreshold);
+			convertFeatureFileToMILDocument(trainFile, output1, mapping);
 		}
 		
 			System.out.println("FINISHED PREPROCESSING TRAIN FEATURES");
@@ -111,50 +119,67 @@ public class Preprocess {
 			String mappingFile) throws IOException {
 
 		Mappings m = new Mappings();
-		Map<String,Integer> featureOccurrenceMap = new HashMap<String,Integer>();
 		//ensure that "NA" gets ID o
 		m.getRelationID("NA", true);
-		BufferedReader br = new BufferedReader(new FileReader(new File(trainFile)));
 		
+		System.out.println("Converting input feature file to temporary feature list file...");
+		long start = System.currentTimeMillis();
+		//grab feature from feature file and put in new file
+		BufferedReader br = new BufferedReader(new FileReader(new File(trainFile)));
+		File tmpFeatureFile = File.createTempFile("tmpFeatureFile", "tmp");
+		tmpFeatureFile.deleteOnExit();
+		BufferedWriter bw = new BufferedWriter(new FileWriter(tmpFeatureFile));
+		String nextLine;
+		int count =0;
+		while((nextLine = br.readLine())!=null){
+			String[]values = nextLine.split("\t");
+			for(int i = 4; i < values.length; i++){
+				bw.write(values[i]+"\n");
+			}
+			count++;
+			if(count % 100000 == 0){
+				System.out.println(count + " lines processed");
+			}
+		}
+		br.close();
+		bw.close();
+		long end = System.currentTimeMillis();
+		System.out.println("Converted feature file to temporary feature list file in " + (end-start) + " milliseconds");
+
+		System.out.println("Sorting temporary feature list file....");
+		start = end;
+		//sort new file by feature string
+		File sortedTmpFeatureFile = File.createTempFile("sortedTmpFeatureFile","tmp");
+		sortedTmpFeatureFile.deleteOnExit();
+		ExternalSort.sort(tmpFeatureFile, sortedTmpFeatureFile);
+        end = System.currentTimeMillis();
+		System.out.println("Sorted temporary feature list file in " + (end-start) + " milliseconds");
+
+		
+		br = new BufferedReader(new FileReader(sortedTmpFeatureFile));
+		
+			
 		String line;
-		int count = 0 ;
+		count = 0 ;
+		String prevFeature = "";
+		int prevCount = 0;
+		System.out.println("Converting feature list to feature mapping object");
 		while((line = br.readLine()) != null){
-	    	String[] values = line.split("\t");
-	    	String rel = values[3];
-	    	String []rels = rel.split("&&");
-	    	List<String> features = new ArrayList<>();
-	    	//add all features
-	    	for(int i = 4; i < values.length; i++){
-	    		features.add(values[i]);
-	    	}
-	    	
-	    	// update mappings file
-	    	for(String r: rels){
-	    	  m.getRelationID(r, true);
-	    	}
-	    	for(String feature: features){
-	    		Integer featId = m.getFeatureID(feature, false);
-	    		if(featId.equals(-1)){
-	    			int oldFeatCount;
-		    		if(featureOccurrenceMap.containsKey(feature)){
-		    			oldFeatCount = featureOccurrenceMap.get(feature);
-		    		}
-		    		else{
-		    			oldFeatCount = 0;
-		    		}
-		    		int featCount = oldFeatCount + 1;
-		    		if(featCount >= FEATURE_THRESHOLD){
-		    			featId = m.getFeatureID(feature,true);
-		    			featureOccurrenceMap.remove(feature);
-		    		}
-		    		else{
-		    			featureOccurrenceMap.put(feature,featCount);
-		    		}
-	    		}
-	    	}
+			String feature = line.trim();
+			if(feature.equals(prevFeature)){
+				prevCount++;
+			}
+			else{
+				prevFeature = feature;
+				prevCount = 1;
+			}
+			
+			if(prevCount == FEATURE_THRESHOLD){
+				m.getFeatureID(feature, true);
+			}
 	    	count++;
 	    	if(count % 100000 == 0){
-	    		System.out.println(count + " training instances processed");
+	    		System.out.println(count + " features processed");
 	    	}
 		}
 		
@@ -178,30 +203,60 @@ public class Preprocess {
 	 * @param collapseSentences 
 	 * @throws IOException
 	 */
-	private static void convertFeatureFileToMILDocument(String input, String output, Mappings m, Random r, boolean collapseSentences, boolean useMultiLabels, int mentionThreshold) throws IOException {
+	private static void convertFeatureFileToMILDocument(String input, String output, 
+			Mappings m) throws IOException {
+		
+		//external sorting mechanism so we don't have to keep entity pairs in memory
+		ExternalSort.defaultcomparator = new Comparator<String>(){
+			@Override
+			public int compare(String line1, String line2) {
+				String[] line1Values = line1.split("\t");
+				String[] line2Values = line2.split("\t");
+				
+				Integer entity1Compare = line1Values[1].compareTo(line2Values[1]);
+				return entity1Compare==0 ? line1Values[2].compareTo(line2Values[2]) : entity1Compare;
+			}
+			
+		};
+		
+		File tempSortedFeatureFile = File.createTempFile("featuresSorted", "tmp");
+		tempSortedFeatureFile.deleteOnExit();
+		long start = System.currentTimeMillis();
+		System.out.println("Sorting feature file");
+		ExternalSort.sort(new File(input), tempSortedFeatureFile);
+		long end = System.currentTimeMillis();
+		System.out.println("Feature file sorted in "  + (end-start) + " milliseconds");
+		
+		
 		//open input and output streams
 		DataOutputStream os = new DataOutputStream
 			(new BufferedOutputStream(new FileOutputStream(output)));
 	
-		BufferedReader br = new BufferedReader(new FileReader(new File(input)));
+		BufferedReader br = new BufferedReader(new FileReader(tempSortedFeatureFile));
 		System.out.println("Set up buffered reader");
 	    
 	    //create MILDocument data map
 	    //load feature generation data into map from argument pair keys to
 	    //a Pair of List<Integer> relations and a List<List<Integer>> for features
 	    //for each instance
-	    Map<Integer,Pair<List<Integer>,List<List<Integer>>>> relationMentionMap = new HashMap<>();
+	    //Map<Integer,Pair<List<Integer>,List<List<Integer>>>> relationMentionMap = new HashMap<>();
 	    
 	    String line;
+	    Integer count =0;
+	    String prevKey = "";
+	    List<List<Integer>> featureLists= new ArrayList<>();
+	    List<Integer> relInts = new ArrayList<>();
 	    while((line = br.readLine()) != null){
 	    	String[] values = line.split("\t");
 	    	String arg1Id = values[1];
 	    	String arg2Id = values[2];
-	    	String relString = values[3];
+	    	String relString = values[3];	    	
 	    	String[] rels = relString.split("&&");
-	    	// entity pair key separated by a delimiter
+	    	List<Integer> intRels = new ArrayList<>();
+	    	for(String rel : rels){
+	    		intRels.add(m.getRelationID(rel, true));
+	    	}	    	
 	    	String key = arg1Id+"%"+arg2Id;
-	    	Integer intKey = getIntKey(key);
 	    	List<String> features = new ArrayList<>();
 	    	//add all features
 	    	for(int i = 4; i < values.length; i++){
@@ -210,163 +265,103 @@ public class Preprocess {
 	    	//convert to integer keys from the mappings m object
 	    	List<Integer> featureIntegers = convertFeaturesToIntegers(features,m);
 	    	
-	    	//update map entry
-	    	if(relationMentionMap.containsKey(intKey)){
-	    		Pair<List<Integer>, List<List<Integer>>> p = relationMentionMap.get(intKey);
-	    		List<Integer> oldRelations = p.first;
-	    		List<List<Integer>> oldFeatures = p.second;
-	    		for(String rel: rels){
-	    			Integer relKey = getIntRelKey(rel,m);
-	    			if(!oldRelations.contains(relKey)){
-	    				oldRelations.add(relKey);
-	    			}
+	    	if(key.equals(prevKey)){
+	    		featureLists.add(featureIntegers);
+	    		for(Integer relInt: intRels){
+	    			if(!relInts.contains(relInt)) relInts.add(relInt);
 	    		}
-	    		oldFeatures.add(featureIntegers);
+	    	}
+	    	else{
+	    		//construct MILDoc from currentFeatureLists
+	    		if(!prevKey.equals("")){
+	    			String[] v = prevKey.split("%");
+	    			constructMILDOC(relInts,featureLists,v[0],v[1]).write(os);
+	    		
+	    		}
+	    		//reste featureLists and prevKey
+	    		relInts = new ArrayList<>();
+	    		for(Integer relInt: intRels){
+	    			if(!relInts.contains(relInt)) relInts.add(relInt);
+	    		}
+	    		featureLists = new ArrayList<>();
+	    		featureLists.add(featureIntegers);
+	    		prevKey = key;
 	    	}
 	    	
-	    	//new map entry
-	    	else{
-	    		List<Integer> relations = new ArrayList<>();
-	    		for(String rel: rels){
-	    			relations.add(getIntRelKey(rel,m));
-	    		}
-	    		List<List<Integer>> newFeatureList = new ArrayList<>();
-	    		newFeatureList.add(featureIntegers);
-	    		Pair<List<Integer>, List<List<Integer>>> p = new Pair<List<Integer>, List<List<Integer>>>(relations, newFeatureList);
-	    		relationMentionMap.put(intKey,p);
-	    	}
-	    	if(relationMentionMap.size() % 100000 == 0){
-	    		System.out.println("Number of entity pairs read in =" + relationMentionMap.size());
+	    	
+	    	count++;
+	    	if(count % 100000 == 0){
+	    		System.out.println("Number of training instances read in =" + count);
 	    		printMemoryStatistics();
 	    	}
 	    }
+	    
+	    //construct last MILDOC from featureLists
+		if(!prevKey.equals("")){
+			String[] v = prevKey.split("%");
+			constructMILDOC(relInts,featureLists,v[0],v[1]).write(os);
+		
+		}
+	    
 	    
 	    br.close();
-	    System.out.println("LOADED MAP!");
-	    
-	    MILDocument doc = new MILDocument();	    
-    	
-	    //iterate over keys in the map and create MILDocuments
-	    int count =0;
-	    
-	    //randomize or not
-	    List<Integer> intKeys = new ArrayList<>(relationMentionMap.keySet());
-	    
-	    if(r != null){
-	    	Collections.shuffle(intKeys,r);
-	    }
-	    
-	    for(Integer intKey : intKeys){
-	    	doc.clear();
-
-	    	String[] keySplit = getStringKey(intKey).split("%");
-	    	String arg1 = keySplit[0];
-	    	String arg2 = keySplit[1];
-	    	Pair<List<Integer>,List<List<Integer>>> p = relationMentionMap.get(intKey);
-	    	if(collapseSentences) removeRedundantMentions(p);
-	    	
-	    	List<Integer> intRels = p.first;
-	    	List<List<Integer>> intFeatures= p.second;
-	    	
-	    	doc.arg1 = arg1;
-	    	doc.arg2 = arg2;
-	    	
-	    	
-	    	// set relations
-	    	{
-		    	int[] irels = new int[intRels.size()];
-		    	for (int i=0; i < intRels.size(); i++)
-		    		irels[i] = intRels.get(i);
-		    	Arrays.sort(irels);
-		    	// ignore NA and non-mapped relations
-		    	int countUnique = 0;
-		    	for (int i=0; i < irels.length; i++)
-		    		if (irels[i] > 0 && (i == 0 || irels[i-1] != irels[i]))
-		    			countUnique++;
-		    	doc.Y = new int[countUnique];
-		    	int pos = 0;
-		    	for (int i=0; i < irels.length; i++)
-		    		if (irels[i] > 0 && (i == 0 || irels[i-1] != irels[i]))
-		    			doc.Y[pos++] = irels[i];
-	    	}
-	    	
-	    	// set mentions
-	    	doc.setCapacity(intFeatures.size());
-	    	doc.numMentions = intFeatures.size();
-	    	
-	    	for (int j=0; j < intFeatures.size(); j++) {
-		    	doc.Z[j] = -1;
-	    		doc.mentionIDs[j] = j;
-	    		SparseBinaryVector sv = doc.features[j] = new SparseBinaryVector();
-	    		
-	    		List<Integer> instanceFeatures = intFeatures.get(j);
-	    		int[] fts = new int[instanceFeatures.size()];
-	    		
-	    		for (int i=0; i < instanceFeatures.size(); i++)
-	    			fts[i] = instanceFeatures.get(i);
-	    		Arrays.sort(fts);
-		    	int countUnique = 0;
-		    	for (int i=0; i < fts.length; i++)
-		    		if (fts[i] != -1 && (i == 0 || fts[i-1] != fts[i]))
-		    			countUnique++;
-		    	sv.num = countUnique;
-		    	sv.ids = new int[countUnique];
-		    	int pos = 0;
-		    	for (int i=0; i < fts.length; i++)
-		    		if (fts[i] != -1 && (i == 0 || fts[i-1] != fts[i]))
-		    			sv.ids[pos++] = fts[i];
-		    	
-	    	}
-	    	if(doc.Y.length == 1 ){
-	    	  if(doc.numMentions>mentionThreshold){
-	    		  doc.write(os);
-	    	  }
-	    	}
-	    	else if(doc.Y.length > 1){
-	    		if(useMultiLabels){
-	    			doc.write(os);
-	    		}
-	    	}
-	    	else{
-	    		doc.write(os);
-	    	}
-	    	count ++;
-	    	
-	    	if(count % 100000 == 0){
-	    		System.out.println(count + " entity pairs processed");
-	    		printMemoryStatistics();
-	    	}
-	    	
-
-	    }
 		os.close();
 	}
-
-	/**
-	 * Remove any feature list that is identical to anotehr one
-	 * @param p
-	 */
-	private static void removeRedundantMentions(
-			Pair<List<Integer>, List<List<Integer>>> p) {
+	
+	private static MILDocument constructMILDOC(List<Integer> relInts, List<List<Integer>> featureInts,
+			String arg1, String arg2){
+		MILDocument doc = new MILDocument();
+    	doc.arg1 = arg1;
+    	doc.arg2 = arg2;
 		
-		List<List<Integer>> mentionFeatures = p.second;
-		Set<List<Integer>> featureSets = new HashSet<>();
-		
-		for(List<Integer> features : mentionFeatures){
-			if(!featureSets.contains(features)) featureSets.add(features);
-		}
-		
-		p.second = new ArrayList<>(featureSets);
+    	// set relations
+    	{
+	    	int[] irels = new int[relInts.size()];
+	    	for (int i=0; i < relInts.size(); i++)
+	    		irels[i] = relInts.get(i);
+	    	Arrays.sort(irels);
+	    	// ignore NA and non-mapped relations
+	    	int countUnique = 0;
+	    	for (int i=0; i < irels.length; i++)
+	    		if (irels[i] > 0 && (i == 0 || irels[i-1] != irels[i]))
+	    			countUnique++;
+	    	doc.Y = new int[countUnique];
+	    	int pos = 0;
+	    	for (int i=0; i < irels.length; i++)
+	    		if (irels[i] > 0 && (i == 0 || irels[i-1] != irels[i]))
+	    			doc.Y[pos++] = irels[i];
+    	}
+    	
+    	// set mentions
+    	doc.setCapacity(featureInts.size());
+    	doc.numMentions = featureInts.size();
+    	
+    	for (int j=0; j < featureInts.size(); j++) {
+	    	doc.Z[j] = -1;
+    		doc.mentionIDs[j] = j;
+    		SparseBinaryVector sv = doc.features[j] = new SparseBinaryVector();
+    		
+    		List<Integer> instanceFeatures = featureInts.get(j);
+    		int[] fts = new int[instanceFeatures.size()];
+    		
+    		for (int i=0; i < instanceFeatures.size(); i++)
+    			fts[i] = instanceFeatures.get(i);
+    		Arrays.sort(fts);
+	    	int countUnique = 0;
+	    	for (int i=0; i < fts.length; i++)
+	    		if (fts[i] != -1 && (i == 0 || fts[i-1] != fts[i]))
+	    			countUnique++;
+	    	sv.num = countUnique;
+	    	sv.ids = new int[countUnique];
+	    	int pos = 0;
+	    	for (int i=0; i < fts.length; i++)
+	    		if (fts[i] != -1 && (i == 0 || fts[i-1] != fts[i]))
+	    			sv.ids[pos++] = fts[i];
+	    	
+    	}
+    	
+    	return doc;
 	}
-
-
-	private static Integer getIntRelKey(String rel, Mappings m) {
-		
-		return m.getRelationID(rel, false);
-		
-	}
-
-
 
 	private static List<Integer> convertFeaturesToIntegers(
 			List<String> features, Mappings m) {
@@ -383,30 +378,6 @@ public class Preprocess {
 		return intFeatures;
 	}
 
-
-
-
-
-	private static String getStringKey(Integer intKey) {
-		if(intToKeyMap.containsKey(intKey)){
-			return intToKeyMap.get(intKey);
-		}
-		else{
-			throw new IllegalStateException();
-		}
-	}
-
-	private static Integer getIntKey(String key) {
-		if(keyToIntegerMap.containsKey(key)){
-			return keyToIntegerMap.get(key);
-		}
-		else{
-			Integer intKey = keyToIntegerMap.size();
-			keyToIntegerMap.put(key, intKey);
-			intToKeyMap.put(intKey, key);
-			return intKey;
-		}
-	}
 	
 	private static void printMemoryStatistics() {
 		double freeMemory = Runtime.getRuntime().freeMemory()/GIGABYTE_DIVISOR;
