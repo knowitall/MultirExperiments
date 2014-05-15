@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -152,7 +153,9 @@ public class Preprocess {
 		//sort new file by feature string
 		File sortedTmpFeatureFile = new File(tmpFeatureFile.getParentFile().getAbsolutePath()+"/sortedTmpFeatureFile");
 		sortedTmpFeatureFile.deleteOnExit();
-		ExternalSort.sort(tmpFeatureFile, sortedTmpFeatureFile);
+		externalSort(tmpFeatureFile,sortedTmpFeatureFile);
+//		ExternalSort.sortAndSave(tmplist, cmp, cs, tmpdirectory)
+//		ExternalSort.sort(tmpFeatureFile, sortedTmpFeatureFile);
         end = System.currentTimeMillis();
 		System.out.println("Sorted temporary feature list file in " + (end-start) + " milliseconds");
 
@@ -225,7 +228,7 @@ public class Preprocess {
 		tempSortedFeatureFile.deleteOnExit();
 		long start = System.currentTimeMillis();
 		System.out.println("Sorting feature file");
-		ExternalSort.sort(new File(input), tempSortedFeatureFile);
+		externalSort(new File(input),tempSortedFeatureFile);
 		long end = System.currentTimeMillis();
 		System.out.println("Feature file sorted in "  + (end-start) + " milliseconds");
 		
@@ -310,6 +313,15 @@ public class Preprocess {
 		os.close();
 	}
 	
+	private static void externalSort(File srcFile, File destFile) throws IOException {
+		
+		File tmpDir = destFile.getParentFile();
+		List<File> tmpFiles = ExternalSort.sortInBatch(srcFile, ExternalSort.defaultcomparator, ExternalSort.DEFAULTMAXTEMPFILES, 
+				Charset.defaultCharset(), tmpDir, false);
+		ExternalSort.mergeSortedFiles(tmpFiles, destFile);
+		
+	}
+
 	private static MILDocument constructMILDOC(List<Integer> relInts, List<List<Integer>> featureInts,
 			String arg1, String arg2){
 		MILDocument doc = new MILDocument();
