@@ -161,7 +161,7 @@ public class FeedbackNegativeDistantSupervision {
 
 		
 		List<DS> candidateNegativeExamples = new ArrayList<>();
-		Set<Integer> relevantSentIds = new HashSet<>();
+		//Set<Integer> relevantSentIds = new HashSet<>();
 		//Run extractor over corpus, get new extractions
 		Iterator<Annotation> di =trainCorpus.getDocumentIterator();
 		int docCount =0;
@@ -193,7 +193,7 @@ public class FeedbackNegativeDistantSupervision {
 									//if(isTrueNegative(kb,doc,sentence,p.first,p.second,rel,arg1Id,arg2Id)){
 										DS ds =  new DS(p.first,p.second,arg1Id,arg2Id,sentNum,rel,modelPath);
 										ds.score = extrScoreTriple.third;
-										relevantSentIds.add(sentNum);
+										//relevantSentIds.add(sentNum);
 										//newNegativeAnnotations.add(ds);
 										candidateNegativeExamples.add(ds);
 									//}
@@ -264,22 +264,27 @@ public class FeedbackNegativeDistantSupervision {
 		}
 		System.out.println("Finished constructing map from arg keys to entity ids");
 		
-		List<Integer> relevantSentIdList = new ArrayList<>(relevantSentIds);
-		List<Set<Integer>> subSentIdSets = new ArrayList<>();
-		for(int i =0; i < relevantSentIdList.size(); i+=100){
-			subSentIdSets.add(new HashSet<>(relevantSentIdList.subList(i, Math.min(relevantSentIdList.size(),i+100))));
-		}
-		Map<Integer,Pair<CoreMap,Annotation>> corpusData = new HashMap<>();
-		for(Set<Integer> subSet : subSentIdSets){
-			corpusData.putAll(trainCorpus.getAnnotationPairsForEachSentence(subSet));
-		}
-		System.out.println("Got map from sentence id to annotation objects");
+//		List<Integer> relevantSentIdList = new ArrayList<>(relevantSentIds);
+//		List<Set<Integer>> subSentIdSets = new ArrayList<>();
+//		for(int i =0; i < relevantSentIdList.size(); i+=100){
+//			subSentIdSets.add(new HashSet<>(relevantSentIdList.subList(i, Math.min(relevantSentIdList.size(),i+100))));
+//		}
+//		Map<Integer,Pair<CoreMap,Annotation>> corpusData = new HashMap<>();
+//		for(Set<Integer> subSet : subSentIdSets){
+//			corpusData.putAll(trainCorpus.getAnnotationPairsForEachSentence(subSet));
+//		}
+//		System.out.println("Got map from sentence id to annotation objects");
 		
 		//iterate over candidate negative examples and text for being true negatives
 		for(DS ds: candidateNegativeExamples){
 			try{
-				if(isTrueNegative(kb,corpusData.get(ds.sentNum).second,corpusData.get(ds.sentNum).first,ds.arg1,ds.arg2,ds.relation,ds.arg1ID,ds.arg2ID,tokenCandidateMap)){
-					modelDataMap.get(ds.modelPath).newNegativeAnnotations.add(ds);
+				Set<Integer> sentIds = new HashSet<>();
+				sentIds.add(ds.sentNum);
+				Map<Integer,Pair<CoreMap,Annotation>> m = trainCorpus.getAnnotationPairsForEachSentence(sentIds);
+				if(m.size() == 1){
+					if(isTrueNegative(kb,m.get(ds.sentNum).second,m.get(ds.sentNum).first,ds.arg1,ds.arg2,ds.relation,ds.arg1ID,ds.arg2ID,tokenCandidateMap)){
+						modelDataMap.get(ds.modelPath).newNegativeAnnotations.add(ds);
+					}
 				}
 			}
 			catch(Exception e){

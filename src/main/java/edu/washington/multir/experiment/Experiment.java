@@ -22,6 +22,7 @@ import com.cedarsoftware.util.io.JsonObject;
 import com.cedarsoftware.util.io.JsonReader;
 
 import edu.washington.multir.data.TypeSignatureRelationMap;
+import edu.washington.multir.development.Preprocess;
 import edu.washington.multir.development.TrainModel;
 import edu.washington.multir.distantsupervision.FeedbackDistantSupervision;
 import edu.washington.multir.distantsupervision.FeedbackNegativeDistantSupervision;
@@ -61,10 +62,7 @@ public class Experiment {
 	private String evalOutputName;
 	private boolean train = false;
 	private boolean useFiger = false;
-	private boolean collapseSentences = false;
-	private boolean useMultiLabels = true;
-	Integer metionThreshold = 0;
-	private Integer minBagSize = 1;
+	private Integer featureThreshold = 2;
 	
 	public Experiment(){}
 	public Experiment(String propertiesFile) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException{
@@ -86,33 +84,9 @@ public class Experiment {
 			}
 		}
 		
-		String useMultiLabelsString = getStringProperty(properties,"useMultiLabels");
-		if(useMultiLabelsString!=null){
-			if(useMultiLabelsString.equals("true")){
-				useMultiLabels =true;
-			}
-			else{
-				useMultiLabels=false;
-			}
-		}
-		
-		String minBagSizeString = getStringProperty(properties,"minBagSize");
-		if(minBagSizeString!=null){
-			this.minBagSize = Integer.parseInt(minBagSizeString);
-		}
-		
-		
-		String collapseSentencesString = getStringProperty(properties,"collapseSentences");
-		if(collapseSentencesString!=null){
-			if(collapseSentencesString.equals("true")){
-				this.collapseSentences = true;
-			}
-		}
-		
-		String mentionString = getStringProperty(properties,"mentionThreshold");
-		if(mentionString!=null){
-			Integer mt = Integer.parseInt(mentionString);
-			this.metionThreshold=mt;
+		String featThresholdString = getStringProperty(properties,"featureThreshold");
+		if(featThresholdString!=null){
+			this.featureThreshold = Integer.parseInt(featThresholdString);
 		}
 		
 		String useFiger = getStringProperty(properties,"useFiger");
@@ -307,7 +281,8 @@ public class Experiment {
 		}
 
 		//do average training run
-		TrainModel.run(featureFiles,multirDirs,10,collapseSentences,useMultiLabels,metionThreshold,minBagSize);
+		Preprocess.FEATURE_THRESHOLD = this.featureThreshold;
+		TrainModel.run(featureFiles,multirDirs,10);
 		
 		if(useFiger){
 			FigerTypeUtils.close();

@@ -44,6 +44,8 @@ import edu.washington.multirframework.multiralgorithm.Mappings;
 import edu.washington.multir.preprocess.CorpusPreprocessing;
 import edu.washington.multir.sententialextraction.DocumentExtractor;
 import edu.washington.multir.util.CLIUtils;
+import edu.washington.multir.util.ModelUtils;
+import edu.washington.multir.util.TypeConstraintUtils;
 
 public class SententialEvaluation {
 	
@@ -58,11 +60,15 @@ public class SententialEvaluation {
 
 	private static Set<String> validRelations;
 	
-	private static DocumentExtractor de;
+	//private static DocumentExtractor de;
 	
 	private static List<String> cjParses;
 	
 	private static Map<Integer,String> ftID2ft;
+	
+	private static FeatureGenerator fg;
+	
+	private static ArgumentIdentification ai;
 	
 	
 	public static void main(String[] args) throws IOException, InterruptedException, ParseException, ClassNotFoundException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationException{
@@ -72,13 +78,14 @@ public class SententialEvaluation {
 			arguments.add(arg);
 		}
 
-		ArgumentIdentification ai = CLIUtils.loadArgumentIdentification(arguments);
-		SententialInstanceGeneration sig = CLIUtils.loadSententialInformationGeneration(arguments);
-		FeatureGenerator fg = CLIUtils.loadFeatureGenerator(arguments);
+		ai = CLIUtils.loadArgumentIdentification(arguments);
+		List<SententialInstanceGeneration> siglist = CLIUtils.loadSententialInstanceGenerationList(arguments);
+		List<String> models = CLIUtils.loadFilePaths(arguments);
+		fg = CLIUtils.loadFeatureGenerator(arguments);
 		
 		//initialize cjParses
 		cjParses = new ArrayList<>();
-		loadCjParses(arguments.get(3));
+		loadCjParses(arguments.get(2));
 		
 		//read in relations from mapping file
 		validRelations = new HashSet<String>();
@@ -91,9 +98,9 @@ public class SententialEvaluation {
 		annotations = loadAnnotations(annotationFilePath);
 		
 		//get extractions
-		de = new DocumentExtractor(arguments.get(2),fg, ai, sig);
+		//de = new DocumentExtractor(arguments.get(2),fg, ai, sig);
 		List<Extraction> extractions;
-		extractions = extract(annotations);
+		extractions = extract(siglist,models,annotations);
 		
 
 		
@@ -175,14 +182,20 @@ public class SententialEvaluation {
 
 
 
-	private static List<Extraction> extract(List<Label> annotations) throws IOException, InterruptedException {
+	private static List<Extraction> extract(List<SententialInstanceGeneration> siglist, List<String> models, List<Label> annotations) throws IOException, InterruptedException {
 		List<Extraction> extractions = new ArrayList<>();
 		
-		
-		for(Label a : annotations){
-			Extraction e= getExtraction(a);
-			if( e != null){
-				extractions.add(e);
+		for(int i =0; i < siglist.size(); i++){
+			SententialInstanceGeneration sig = siglist.get(i);
+	        DocumentExtractor de = new DocumentExtractor(models.get(i),fg,ai,sig);
+	        Mappings m = new Mappings();
+	        m.read(models.get(i)+"/mapping");
+	        ftID2ft = ModelUtils.getFeatureIDToFeatureMap(m);
+			for(Label a : annotations){
+				Extraction e= getExtraction(de,a);
+				if( e != null){
+					extractions.add(e);
+				}
 			}
 		}
 		return extractions;
@@ -191,7 +204,7 @@ public class SententialEvaluation {
 
 
 
-	private static Extraction getExtraction(Label a) throws IOException, InterruptedException {
+	private static Extraction getExtraction(DocumentExtractor de, Label a) throws IOException, InterruptedException {
 		
 		
 		
@@ -203,7 +216,28 @@ public class SententialEvaluation {
 		List<CoreMap> sentences = doc.get(CoreAnnotations.SentencesAnnotation.class);
 		Argument arg1 = new Argument(a.r.arg1.getArgName(),a.r.arg1.getStartOffset(),a.r.arg1.getEndOffset());
 		Argument arg2 = new Argument(a.r.arg2.getArgName(),a.r.arg2.getStartOffset(),a.r.arg2.getEndOffset());
-		Pair<Triple<String,Double,Double>,Map<Integer,Double>> result = de.extractFromSententialInstanceWithFeatureScores(arg1, arg2, sentences.get(0), doc);
+		Pair<Triple<String,Double,Double>,Map<Integer,Double>> result = null;
+		List<Argument> arguments = new ArrayList<>();
+		arguments.add(arg1);
+		arguments.add(arg2);
+		try{
+		  List<Pair<Argument,Argument>> sips = de.getSig().generateSententialInstances(arguments, sentence);
+		  boolean useModel = false;
+		  for(Pair<Argument,Argument> sip : sips){
+			  if(sip.first.equals(arg1)){
+				  useModel = true;
+			  }
+		  }
+		  if(useModel) {
+
+			  result = de.extractFromSententialInstanceWithFeatureScores(arg1, arg2, sentences.get(0), doc);
+		  }
+
+
+		}
+		catch(Exception e){
+			System.out.println(e.getMessage());
+		}
 		
 		
 		if(result == null){
@@ -228,7 +262,9 @@ public class SententialEvaluation {
 			e.r = r;
 			e.featureScores = featureScoreMap;
 			
-			if(!a.r.rel.equals(r.rel)) System.out.println(e.ID +"\t" + r.rel + "\t" + r.arg1.getArgName() + "\t" + r.arg2.getArgName());
+			//if(!a.r.rel.equals(r.rel)) 
+			System.out.println(e.ID +"\t" + r.rel + "\t" + r.arg1.getArgName() + "\t" + r.arg2.getArgName());
+			System.out.println(e.printFeatureScores());
 			return e;
 		}
 	}
@@ -321,18 +357,11 @@ public class SententialEvaluation {
 
 	private static void loadRelations(String mappingFile) throws IOException {
 		BufferedReader br = new BufferedReader(new FileReader( new File(mappingFile)));
-		String firstLine;
-		firstLine = br.readLine();
-		Integer numRelations = Integer.parseInt(firstLine);
 		
-		int i =0;
 		String nextLine;
-		while(i < numRelations){
-			nextLine = br.readLine();
-			String[] lineValues = nextLine.split("\t");
-			String rel = lineValues[1];
+		while((nextLine = br.readLine())!=null){
+			String rel = nextLine.trim();
 			validRelations.add(rel);
-			i++;
 		}
 		br.close();
 	}

@@ -19,10 +19,7 @@ import edu.washington.multirframework.multiralgorithm.Parameters;
 import edu.washington.multir.util.ModelUtils;
 
 public class PrintFeatureScoresForRelation {
-	
-	
-	
-	
+
 	public static void main(String[] args) throws IOException{
 		
 		String pathToMultirDir = args[0];
