@@ -30,7 +30,6 @@ import edu.washington.multirframework.argumentidentification.NELArgumentIdentifi
 import edu.washington.multirframework.argumentidentification.NERArgumentIdentification;
 import edu.washington.multirframework.argumentidentification.DefaultSententialInstanceGeneration;
 import edu.washington.multirframework.argumentidentification.SententialInstanceGeneration;
-import edu.washington.multirframework.argumentidentification.TestArgumentIdentification;
 import edu.washington.multirframework.data.Argument;
 import edu.washington.multirframework.data.KBArgument;
 import edu.washington.multirframework.featuregeneration.DefaultFeatureGenerator;
