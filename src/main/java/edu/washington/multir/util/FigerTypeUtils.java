@@ -52,7 +52,7 @@ public class FigerTypeUtils {
 		try {
 			// initialize the db connection
 			conn = DriverManager
-					.getConnection("jdbc:postgresql://pardosa05.cs.washington.edu:5432/wex?user=jgilme1"
+					.getConnection("jdbc:postgresql://pardosa06.cs.washington.edu:5432/wex?user=jgilme1"
 							+ "&charSet=UTF8");
 			guidQuery = conn
 					.prepareStatement("select guid from freebase_names where name=?");

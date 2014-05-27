@@ -57,13 +57,7 @@ public class TrainModel {
 					randomModelFiles.add(newModelFile);
 					File oldParams = new File(modelFile.getAbsolutePath()+"/params");
 					File newParams = new File(newModelFile.getAbsolutePath()+"/params");
-					File oldMapping = new File(modelFile.getAbsolutePath()+"/mapping");
-					File newMapping = new File(newModelFile.getAbsolutePath()+"/mapping");
-					File oldModel = new File(modelFile.getAbsolutePath()+"/model");
-					File newModel = new File(newModelFile.getAbsolutePath()+"/model");
 					FileUtils.copyFile(oldParams, newParams);
-					FileUtils.copyFile(oldMapping, newMapping);
-					FileUtils.copyFile(oldModel, newModel);
 					randomSeed++;
 				}
 				MakeAverageModel.run(randomModelFiles,modelFile);
