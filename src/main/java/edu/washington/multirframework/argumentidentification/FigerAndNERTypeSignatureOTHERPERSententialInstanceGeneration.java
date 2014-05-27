@@ -2,7 +2,7 @@ package edu.washington.multirframework.argumentidentification;
 
 import edu.washington.multir.util.TypeConstraintUtils;
 
-public class FigerAndNERTypeSignatureOTHERPERSententialInstanceGeneration
+public class FigerAndNERTypeSignatureOTHERPERSententialInstanceGeneration 
 extends FigerAndNERTypeSignatureSententialInstanceGeneration {
 
 	private static FigerAndNERTypeSignatureOTHERPERSententialInstanceGeneration instance = null;
