@@ -128,7 +128,7 @@ public class Preprocess {
 		//grab feature from feature file and put in new file
 		BufferedReader br = new BufferedReader(new FileReader(new File(trainFile)));
 		File trainFileF = new File(trainFile);
-		File tmpFeatureFile = new File(trainFileF.getParentFile().getAbsolutePath()+"/tmpFeatureFile");
+		File tmpFeatureFile = new File(trainFileF.getParentFile().getAbsolutePath()+"/"+trainFileF.getName()+"-tmpFeatureFile");
 		tmpFeatureFile.deleteOnExit();
 		BufferedWriter bw = new BufferedWriter(new FileWriter(tmpFeatureFile));
 		String nextLine;
@@ -151,7 +151,7 @@ public class Preprocess {
 		System.out.println("Sorting temporary feature list file....");
 		start = end;
 		//sort new file by feature string
-		File sortedTmpFeatureFile = new File(tmpFeatureFile.getParentFile().getAbsolutePath()+"/sortedTmpFeatureFile");
+		File sortedTmpFeatureFile = new File(tmpFeatureFile.getParentFile().getAbsolutePath()+"/"+trainFileF.getName()+"-sortedTmpFeatureFile");
 		sortedTmpFeatureFile.deleteOnExit();
 		externalSort(tmpFeatureFile,sortedTmpFeatureFile);
 //		ExternalSort.sortAndSave(tmplist, cmp, cs, tmpdirectory)
