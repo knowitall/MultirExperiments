@@ -63,6 +63,7 @@ public class Experiment {
 	private boolean train = false;
 	private boolean useFiger = false;
 	private Integer featureThreshold = 2;
+	private boolean strictNegativeGeneration = false;
 	
 	public Experiment(){}
 	public Experiment(String propertiesFile) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException{
@@ -81,6 +82,13 @@ public class Experiment {
 			}
 			else if(train.equals("true")){
 				this.train = true;
+			}
+		}
+		
+		String strictNegativeGenerationString = getStringProperty(properties,"strictNegativeGeneration");
+		if(strictNegativeGenerationString != null){
+			if(strictNegativeGenerationString.equals("true")){
+				strictNegativeGeneration = true;
 			}
 		}
 		
@@ -259,7 +267,7 @@ public class Experiment {
 			System.err.println("Running DS");
 			runFG = true;
 			if(DSFiles.size() > 1){
-				MultiModelDistantSupervision mmds = new MultiModelDistantSupervision(ai, DSFiles, sigs, rm, nec, false);
+				MultiModelDistantSupervision mmds = new MultiModelDistantSupervision(ai, DSFiles, sigs, rm, nec, strictNegativeGeneration);
 				mmds.run(kb, corpus);
 			}
 			else{

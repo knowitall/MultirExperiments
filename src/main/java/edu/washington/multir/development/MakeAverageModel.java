@@ -56,9 +56,7 @@ public class MakeAverageModel {
 	private static void writeNewModel(String newModelDir, int size) throws IOException {
 		String newParamsFile = newModelDir + "/params";
 		
-		Parameters p = new Parameters();
-		p.model = model;
-		p.init();		
+	
 		
 		for(int rel = 0; rel < p.relParameters.length; rel++){	
 			for(int feat = 0; feat < p.relParameters[rel].vals.length; feat++){
