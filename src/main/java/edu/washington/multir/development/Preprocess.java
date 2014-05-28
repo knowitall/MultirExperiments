@@ -153,7 +153,7 @@ public class Preprocess {
 		//sort new file by feature string
 		File sortedTmpFeatureFile = new File(tmpFeatureFile.getParentFile().getAbsolutePath()+"/"+trainFileF.getName()+"-sortedTmpFeatureFile");
 		sortedTmpFeatureFile.deleteOnExit();
-		externalSort(tmpFeatureFile,sortedTmpFeatureFile);
+		externalSort(tmpFeatureFile,sortedTmpFeatureFile,ExternalSort.defaultcomparator);
 //		ExternalSort.sortAndSave(tmplist, cmp, cs, tmpdirectory)
 //		ExternalSort.sort(tmpFeatureFile, sortedTmpFeatureFile);
         end = System.currentTimeMillis();
@@ -211,7 +211,7 @@ public class Preprocess {
 			Mappings m) throws IOException {
 		
 		//external sorting mechanism so we don't have to keep entity pairs in memory
-		ExternalSort.defaultcomparator = new Comparator<String>(){
+		Comparator<String> entityPairComparator = new Comparator<String>(){
 			@Override
 			public int compare(String line1, String line2) {
 				String[] line1Values = line1.split("\t");
@@ -223,12 +223,13 @@ public class Preprocess {
 			
 		};
 		
+		
 		File inputFile = new File(input);
 		File tempSortedFeatureFile = new File(inputFile.getParentFile().getAbsolutePath()+"/sortedFeaturesFile");
 		tempSortedFeatureFile.deleteOnExit();
 		long start = System.currentTimeMillis();
 		System.out.println("Sorting feature file");
-		externalSort(new File(input),tempSortedFeatureFile);
+		externalSort(new File(input),tempSortedFeatureFile,entityPairComparator);
 		long end = System.currentTimeMillis();
 		System.out.println("Feature file sorted in "  + (end-start) + " milliseconds");
 		
@@ -313,10 +314,10 @@ public class Preprocess {
 		os.close();
 	}
 	
-	private static void externalSort(File srcFile, File destFile) throws IOException {
+	private static void externalSort(File srcFile, File destFile, Comparator<String> comparator) throws IOException {
 		
 		File tmpDir = destFile.getParentFile();
-		List<File> tmpFiles = ExternalSort.sortInBatch(srcFile, ExternalSort.defaultcomparator, ExternalSort.DEFAULTMAXTEMPFILES, 
+		List<File> tmpFiles = ExternalSort.sortInBatch(srcFile, comparator, ExternalSort.DEFAULTMAXTEMPFILES, 
 				Charset.defaultCharset(), tmpDir, false);
 		ExternalSort.mergeSortedFiles(tmpFiles, destFile);
 		
