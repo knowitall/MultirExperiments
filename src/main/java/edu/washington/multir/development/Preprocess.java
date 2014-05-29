@@ -317,9 +317,9 @@ public class Preprocess {
 	private static void externalSort(File srcFile, File destFile, Comparator<String> comparator) throws IOException {
 		
 		File tmpDir = destFile.getParentFile();
-		List<File> tmpFiles = ExternalSort.sortInBatch(srcFile, comparator, ExternalSort.DEFAULTMAXTEMPFILES, 
+		List<File> tmpFiles = ExternalSort.sortInBatch(srcFile, comparator, 4096, 
 				Charset.defaultCharset(), tmpDir, false);
-		ExternalSort.mergeSortedFiles(tmpFiles, destFile);
+		ExternalSort.mergeSortedFiles(tmpFiles, destFile,comparator);
 		
 	}
 
