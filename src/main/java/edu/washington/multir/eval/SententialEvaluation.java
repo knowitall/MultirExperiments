@@ -58,7 +58,7 @@ public class SententialEvaluation {
 	private static Pattern moveQuotesLeftPattern = Pattern.compile(".(\\s)(?:''|\\\")(?!\\S)");
 	private static Pattern moveApostropheLeftPattern = Pattern.compile(".(\\s)'(?!')");
 
-	private static Set<String> validRelations;
+//	private static Set<String> validRelations;
 	
 	//private static DocumentExtractor de;
 	
@@ -85,16 +85,16 @@ public class SententialEvaluation {
 		
 		//initialize cjParses
 		cjParses = new ArrayList<>();
-		loadCjParses(arguments.get(2));
+		loadCjParses(arguments.get(1));
 		
-		//read in relations from mapping file
-		validRelations = new HashSet<String>();
-		loadRelations(arguments.get(0));
+//		//read in relations from mapping file
+//		validRelations = new HashSet<String>();
+//		loadRelations(arguments.get(0));
 		
 		
 		//load in annotations
 		List<Label> annotations;
-		String annotationFilePath = arguments.get(1);
+		String annotationFilePath = arguments.get(0);
 		annotations = loadAnnotations(annotationFilePath);
 		
 		//get extractions
@@ -103,10 +103,10 @@ public class SententialEvaluation {
 		extractions = extract(siglist,models,annotations);
 		
 
+		String outputFile = arguments.get(2);
 		
 		
-		
-		score(annotations,extractions);
+		score(annotations,extractions,outputFile);
 		
 		System.out.println("Number of annotations is " + annotations.size());
 		
@@ -263,8 +263,8 @@ public class SententialEvaluation {
 			e.featureScores = featureScoreMap;
 			
 			//if(!a.r.rel.equals(r.rel)) 
-			System.out.println(e.ID +"\t" + r.rel + "\t" + r.arg1.getArgName() + "\t" + r.arg2.getArgName());
-			System.out.println(e.printFeatureScores());
+//			System.out.println(e.ID +"\t" + r.rel + "\t" + r.arg1.getArgName() + "\t" + r.arg2.getArgName());
+//			System.out.println(e.printFeatureScores());
 			return e;
 		}
 	}
@@ -285,6 +285,57 @@ public class SententialEvaluation {
 		Pair<Double,Double> finalPr = getPR(extractions,annotations,true);
 		System.out.println(finalPr.first + "\t" + finalPr.second + "\t" + fscore(finalPr.first,finalPr.second));		
 	}
+	
+	private static void score(List<Label> annotations,
+			List<Extraction> extractions, String outputFile) throws IOException {
+		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(outputFile)));
+		//sort extractions and print in order
+		Collections.sort(extractions,new ExtractionScoreComparable());
+		
+		String getPRString = getPRString(extractions,annotations);
+		bw.write(getPRString);
+		for(int i =1; i < extractions.size(); i++){
+			Pair<Double,Double> pr = getPR(new ArrayList<Extraction>(extractions.subList(0, i)),annotations,false);
+			bw.write(pr.first + "\t" + pr.second + "\t" + fscore(pr.first,pr.second)+"\n");
+		}
+
+		
+		bw.close();
+	}
+
+
+	private static String getPRString(List<Extraction> extractions,
+			List<Label> annotations) {
+		StringBuilder sb = new StringBuilder();		
+		
+		for(Extraction e: extractions){
+			Relation r = e.r;
+			//find Label
+			Label matchingLabel = null;
+			for(Label l : annotations){
+				if(e.ID.equals(l.ID)){
+					matchingLabel = l;
+					break;
+				}
+			}
+			
+			//if there should be an extractoin
+			if(matchingLabel.b){
+				//if its the right extraction
+				if(e.r.rel.equals(matchingLabel.r.rel)){
+					sb.append(r.arg1.getArgName()+ "\t" + r.arg2.getArgName() + "\t" + r.rel  +"\t" + e.score + "\t" + "CORRECT\n");
+				}
+			}
+			else{
+				if(e.r.rel.equals(matchingLabel.r.rel)){
+					sb.append(r.arg1.getArgName()+ "\t" + r.arg2.getArgName() + "\t" + r.rel  +"\t" + e.score +"\t" + "INCORRECT\n");
+				}
+			}			
+		}
+		return sb.toString().trim();
+	}
+
+
 
 
 	private static double fscore(double precision, double recall){
@@ -355,16 +406,16 @@ public class SententialEvaluation {
 
 
 
-	private static void loadRelations(String mappingFile) throws IOException {
-		BufferedReader br = new BufferedReader(new FileReader( new File(mappingFile)));
-		
-		String nextLine;
-		while((nextLine = br.readLine())!=null){
-			String rel = nextLine.trim();
-			validRelations.add(rel);
-		}
-		br.close();
-	}
+//	private static void loadRelations(String mappingFile) throws IOException {
+//		BufferedReader br = new BufferedReader(new FileReader( new File(mappingFile)));
+//		
+//		String nextLine;
+//		while((nextLine = br.readLine())!=null){
+//			String rel = nextLine.trim();
+//			validRelations.add(rel);
+//		}
+//		br.close();
+//	}
 
 
 
@@ -539,9 +590,9 @@ public class SententialEvaluation {
 
 	private static boolean isValidAnnotation(Label a) {
 		
-		if(!validRelations.contains(a.r.rel)){
-			return false;
-		}
+//		if(!validRelations.contains(a.r.rel)){
+//			return false;
+//		}
 		if(a.sentence == null){
 			return false;
 		}
