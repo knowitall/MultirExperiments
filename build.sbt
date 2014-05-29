@@ -1,4 +1,4 @@
-name := "MultirTestPipelineFramework"
+name := "MultirExperiments"
 
 version := "0.1"
 
