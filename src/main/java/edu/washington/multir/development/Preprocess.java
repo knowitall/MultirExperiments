@@ -129,7 +129,6 @@ public class Preprocess {
 		BufferedReader br = new BufferedReader(new FileReader(new File(trainFile)));
 		File trainFileF = new File(trainFile);
 		File tmpFeatureFile = new File(trainFileF.getParentFile().getAbsolutePath()+"/"+trainFileF.getName()+"-tmpFeatureFile-"+new Random(System.nanoTime()).nextInt());
-		tmpFeatureFile.deleteOnExit();
 		BufferedWriter bw = new BufferedWriter(new FileWriter(tmpFeatureFile));
 		String nextLine;
 		int count =0;
@@ -152,7 +151,6 @@ public class Preprocess {
 		start = end;
 		//sort new file by feature string
 		File sortedTmpFeatureFile = new File(tmpFeatureFile.getParentFile().getAbsolutePath()+"/"+trainFileF.getName()+"-sortedTmpFeatureFile-"+new Random(System.nanoTime()).nextInt());
-		sortedTmpFeatureFile.deleteOnExit();
 		externalSort(tmpFeatureFile,sortedTmpFeatureFile,ExternalSort.defaultcomparator);
 //		ExternalSort.sortAndSave(tmplist, cmp, cs, tmpdirectory)
 //		ExternalSort.sort(tmpFeatureFile, sortedTmpFeatureFile);
@@ -187,7 +185,11 @@ public class Preprocess {
 	    	}
 		}
 		
+
+		
 		br.close();
+		tmpFeatureFile.delete();
+		sortedTmpFeatureFile.delete();
 		return m;
 	}
 
@@ -226,7 +228,6 @@ public class Preprocess {
 		
 		File inputFile = new File(input);
 		File tempSortedFeatureFile = new File(inputFile.getParentFile().getAbsolutePath()+"/"+inputFile.getName()+"-sortedFeaturesFile-"+new Random(System.nanoTime()).nextInt());
-		tempSortedFeatureFile.deleteOnExit();
 		long start = System.currentTimeMillis();
 		System.out.println("Sorting feature file");
 		externalSort(new File(input),tempSortedFeatureFile,entityPairComparator);
@@ -309,9 +310,9 @@ public class Preprocess {
 		
 		}
 	    
-	    
 	    br.close();
 		os.close();
+		tempSortedFeatureFile.delete();
 	}
 	
 	private static void externalSort(File srcFile, File destFile, Comparator<String> comparator) throws IOException {
