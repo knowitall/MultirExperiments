@@ -40,6 +40,7 @@ import edu.washington.multirframework.argumentidentification.SententialInstanceG
 import edu.washington.multirframework.corpus.CorpusInformationSpecification.SentDocNameInformation.SentDocName;
 import edu.washington.multirframework.corpus.DefaultCorpusInformationSpecification;
 import edu.washington.multirframework.corpus.SentDependencyInformation;
+import edu.washington.multirframework.corpus.SentOffsetInformation.SentStartOffset;
 import edu.washington.multirframework.corpus.TokenOffsetInformation.SentenceRelativeCharacterOffsetBeginAnnotation;
 import edu.washington.multirframework.corpus.TokenOffsetInformation.SentenceRelativeCharacterOffsetEndAnnotation;
 import edu.washington.multirframework.data.Argument;
@@ -357,6 +358,7 @@ public class CorpusPreprocessing {
 				tokenStringBuilder.append(token.value());
 				tokenStringBuilder.append(" ");
 			}
+			sentence.set(SentStartOffset.class, sentence.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class));
 			String cjPreprocessedString = cjPreprocessSentence(tokenStringBuilder.toString().trim());
 			bw.write(cjPreprocessedString +"\n");
 		}
