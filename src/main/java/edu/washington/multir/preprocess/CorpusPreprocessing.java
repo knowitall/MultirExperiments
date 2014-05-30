@@ -37,6 +37,7 @@ import edu.washington.multirframework.argumentidentification.ArgumentIdentificat
 import edu.washington.multirframework.argumentidentification.NERArgumentIdentification;
 import edu.washington.multirframework.argumentidentification.DefaultSententialInstanceGeneration;
 import edu.washington.multirframework.argumentidentification.SententialInstanceGeneration;
+import edu.washington.multirframework.corpus.CorpusInformationSpecification.SentDocNameInformation.SentDocName;
 import edu.washington.multirframework.corpus.DefaultCorpusInformationSpecification;
 import edu.washington.multirframework.corpus.SentDependencyInformation;
 import edu.washington.multirframework.corpus.TokenOffsetInformation.SentenceRelativeCharacterOffsetBeginAnnotation;
@@ -427,7 +428,7 @@ public class CorpusPreprocessing {
 			index++;
 		}
 		in.close();
-		
+		doc.set(SentDocName.class,docName);
 		return doc;
 	}
 	

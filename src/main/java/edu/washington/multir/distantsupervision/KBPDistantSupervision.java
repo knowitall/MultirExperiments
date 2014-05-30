@@ -164,11 +164,11 @@ public class KBPDistantSupervision {
 						String arg2Type = TypeConstraintUtils.translateNERTypeToTypeString(TypeConstraintUtils.getNERType(sententialInstances.get(0).second,tokens));	
 						
 						//handle DATE
-						if(arg2Type.equals(GeneralType.DATE)){
-							List<Triple<KBArgument,KBArgument,String>> distantSupervisionAnnotations = 
-									getDateRelations(sententialInstances,dm,sentence,d);
-
-						}
+//						if(arg2Type.equals(GeneralType.DATE)){
+//							List<Triple<KBArgument,KBArgument,String>> distantSupervisionAnnotations = 
+//									getDateRelations(sententialInstances,dm,sentence,d);
+//
+//						}
 						
 						//handle NUM
 						
@@ -228,19 +228,22 @@ public class KBPDistantSupervision {
 		}
 	}
 	
-	private List<Triple<KBArgument, KBArgument, String>> getDateRelations(
-			List<Pair<Argument, Argument>> sententialInstances,
-			DateMap dm, CoreMap sentence, Annotation d) {
-		
-		for(Pair<Argument,Argument> p : sententialInstances){
-			if(p.first instanceof KBArgument){
-				
-			}
-			
-			if(dm.matchesValue(arg1Id, rel, timexValue))
-		}
-
-	}
+//	private List<Triple<KBArgument, KBArgument, String>> getDateRelations(
+//			List<Pair<Argument, Argument>> sententialInstances, KnowledgeBase kb,
+//			DateMap dm, CoreMap sentence, Annotation d) {
+//		
+//		for(Pair<Argument,Argument> p : sententialInstances){
+//			if(p.first instanceof KBArgument){
+//				
+//			}
+//			else{
+//				List<String> candidateArg1Ids = getCandidateEntities(kb,p.first.getArgName());
+//				//if(dm.matchesValue(arg1Id, rel, timexValue))
+//				
+//			}
+//		}
+//
+//	}
 
 	private  List<NegativeAnnotation> findNegativeExampleAnnotations(
 			List<Pair<Argument, Argument>> sententialInstances,
