@@ -60,7 +60,8 @@ public class TypeConstraintUtils {
 	
 	public static String translateNERTypeToTypeString(String nerType){
 		
-		if(nerType.equals(GeneralType.PERSON) || nerType.equals(GeneralType.LOCATION) || nerType.equals(GeneralType.ORGANIZATION)){
+		if(nerType.equals(GeneralType.PERSON) || nerType.equals(GeneralType.LOCATION) || nerType.equals(GeneralType.ORGANIZATION) 
+				|| nerType.equals(GeneralType.DATE) || nerType.equals(GeneralType.NUMBER)){
 			return nerType;
 		}
 		else{
@@ -127,6 +128,8 @@ public class TypeConstraintUtils {
 	}
 	
 	public static class GeneralType{
+		public static final String DATE = "DATE";
+		public static final String NUMBER = "NUMBER";
 		public static final String ORGANIZATION = "ORGANIZATION";
 		public static final String PERSON = "PERSON";
 		public static final String LOCATION = "LOCATION";

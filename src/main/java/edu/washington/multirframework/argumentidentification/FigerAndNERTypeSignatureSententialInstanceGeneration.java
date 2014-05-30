@@ -68,24 +68,7 @@ public abstract class FigerAndNERTypeSignatureSententialInstanceGeneration imple
 							arg1Type = TypeConstraintUtils.translateNERTypeToTypeString(TypeConstraintUtils.getNERType(arg1,tokens));
 							arg2Type = TypeConstraintUtils.translateNERTypeToTypeString(TypeConstraintUtils.getNERType(arg2,tokens));
 							
-							if(arg1Type.equals("OTHER") && arg1 instanceof KBArgument){
-								KBArgument kbarg = (KBArgument)arg1;
-								arg1Type = TypeConstraintUtils.translateFigerTypeToTypeString(TypeConstraintUtils.getFigerType(kbarg,notableTypeData,tokens));
-							}
-//							else{
-//								arg1Type = TypeConstraintUtils.translateNERTypeToTypeString(TypeConstraintUtils.getNERType(arg1,tokens));
-//
-//							}
-							
-							if(arg2Type.equals("OTHER") && arg2 instanceof KBArgument){
-								KBArgument kbarg = (KBArgument)arg2;
-								arg2Type = TypeConstraintUtils.translateFigerTypeToTypeString(TypeConstraintUtils.getFigerType(kbarg,notableTypeData,tokens));
 
-							}
-//							else{
-//								arg2Type = TypeConstraintUtils.translateNERTypeToTypeString(TypeConstraintUtils.getNERType(arg2,tokens));
-//
-//							}
 							
 							//if types match arg1Type and arg2Type consider as a sentential instance
 							if(arg1Type.equals(this.arg1Type) && arg2Type.equals(this.arg2Type)){

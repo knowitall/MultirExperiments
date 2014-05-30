@@ -11,7 +11,7 @@ javaOptions in run += "-Xmx12G"
 javaOptions in run += "-Djava.util.Arrays.useLegacyMergeSort=true"
 
 libraryDependencies ++= Seq(
-  "edu.washington.cs.knowitall" % "multir-framework_2.10" % "0.2-SNAPSHOT" withSources() withJavadoc(),
+  "edu.washington.cs.knowitall" % "multir-framework_2.10" % "0.3-SNAPSHOT" withSources() withJavadoc(),
   "edu.washington.cs.knowitall.stanford-corenlp" % "stanford-ner-models" % "1.3.5",
   "edu.washington.cs.knowitall.stanford-corenlp" % "stanford-postag-models" % "1.3.5",
   "edu.washington.cs.knowitall.stanford-corenlp" % "stanford-dcoref-models" % "1.3.5",
@@ -25,7 +25,8 @@ libraryDependencies ++= Seq(
   "edu.washington.cs.knowitall.nlptools" % "nlptools-wordnet-uw_2.10" % "2.4.4",
   "org.apache.hadoop" % "hadoop-core" % "0.20.2",
   "com.cedarsoftware" % "json-io" % "2.6.0",
-  "com.google.code.externalsortinginjava" % "externalsortinginjava" % "0.1.9")
+  "com.google.code.externalsortinginjava" % "externalsortinginjava" % "0.1.9",
+  "edu.washington.cs.knowitall.taggers" % "taggers-core_2.10" % "0.4" excludeAll(ExclusionRule(organization = "com.googlecode.clearnlp")))
 
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
