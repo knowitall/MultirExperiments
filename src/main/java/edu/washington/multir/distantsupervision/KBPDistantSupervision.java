@@ -1,6 +1,8 @@
 package edu.washington.multir.distantsupervision;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.SQLException;
@@ -12,12 +14,14 @@ import java.util.Map;
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
+import edu.stanford.nlp.time.SUTime;
 import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.Pair;
 import edu.stanford.nlp.util.Triple;
 import edu.washington.multir.data.TypeSignatureRelationMap;
 import edu.washington.multir.util.FigerTypeUtils;
 import edu.washington.multir.util.TypeConstraintUtils;
+import edu.washington.multir.util.TypeConstraintUtils.GeneralType;
 import edu.washington.multirframework.argumentidentification.ArgumentIdentification;
 import edu.washington.multirframework.argumentidentification.FigerAndNERTypeSignatureORGDATESententialInstanceGeneration;
 import edu.washington.multirframework.argumentidentification.FigerAndNERTypeSignatureORGLOCSententialInstanceGeneration;
@@ -104,8 +108,10 @@ public class KBPDistantSupervision {
 		sigList.add(FigerAndNERTypeSignatureORGDATESententialInstanceGeneration.getInstance());
 		sigList.add(FigerAndNERTypeSignatureORGLOCSententialInstanceGeneration.getInstance());
 				
+		DateMap dm = new DateMap("/path");
+		
 		KBPDistantSupervision ds = new KBPDistantSupervision(ai,outputPaths,sigList,rm,nec);
-		ds.run(kb,c);
+		ds.run(kb,dm,c);
 	}
 	
 	public KBPDistantSupervision(ArgumentIdentification ai, List<String> outputPaths, List<SententialInstanceGeneration> sigList, 
@@ -120,7 +126,7 @@ public class KBPDistantSupervision {
 		}
 	}
 
-	public void run(KnowledgeBase kb, Corpus c) throws SQLException, IOException{
+	public void run(KnowledgeBase kb, DateMap dm, Corpus c) throws SQLException, IOException{
     	long start = System.currentTimeMillis();
     	
     	writers = new ArrayList<PrintWriter>();
@@ -152,36 +158,46 @@ public class KBPDistantSupervision {
 					List<Argument> arguments =  argumentList.get(sentIndex);
 					//sentential instance generation
 					List<Pair<Argument,Argument>> sententialInstances = sig.generateSententialInstances(arguments, sentence);
-					
-					
-					//handle DATE
-					
-					//handle NUM
-					
-					//handle WEBSITE
-					
-					//relation matching
-					List<Triple<KBArgument,KBArgument,String>> distantSupervisionAnnotations = 
-							rm.matchRelations(sententialInstances,kb,sentence,d);
-												
-					
-					
-					//adding sentence IDs
-					List<Pair<Triple<KBArgument,KBArgument,String>,Integer>> dsAnnotationWithSentIDs = new ArrayList<>();
-					for(Triple<KBArgument,KBArgument,String> trip : distantSupervisionAnnotations){
-						Integer i = new Integer(sentGlobalID);
-						Pair<Triple<KBArgument,KBArgument,String>,Integer> p = new Pair<>(trip,i);
-						dsAnnotationWithSentIDs.add(p);
+					if(sententialInstances.size() > 0){
+						List<CoreLabel> tokens = sentence.get(CoreAnnotations.TokensAnnotation.class);
+						String arg1Type = TypeConstraintUtils.translateNERTypeToTypeString(TypeConstraintUtils.getNERType(sententialInstances.get(0).first, tokens));
+						String arg2Type = TypeConstraintUtils.translateNERTypeToTypeString(TypeConstraintUtils.getNERType(sententialInstances.get(0).second,tokens));	
+						
+						//handle DATE
+						if(arg2Type.equals(GeneralType.DATE)){
+							List<Triple<KBArgument,KBArgument,String>> distantSupervisionAnnotations = 
+									getDateRelations(sententialInstances,dm,sentence,d);
+
+						}
+						
+						//handle NUM
+						
+						//handle WEBSITE
+						
+						//relation matching
+						List<Triple<KBArgument,KBArgument,String>> distantSupervisionAnnotations = 
+								rm.matchRelations(sententialInstances,kb,sentence,d);
+													
+						
+						
+						//adding sentence IDs
+						List<Pair<Triple<KBArgument,KBArgument,String>,Integer>> dsAnnotationWithSentIDs = new ArrayList<>();
+						for(Triple<KBArgument,KBArgument,String> trip : distantSupervisionAnnotations){
+							Integer i = new Integer(sentGlobalID);
+							Pair<Triple<KBArgument,KBArgument,String>,Integer> p = new Pair<>(trip,i);
+							dsAnnotationWithSentIDs.add(p);
+						}
+						//negative example annotations
+						List<NegativeAnnotation> negativeExampleAnnotations = null;
+						negativeExampleAnnotations =
+								  findNegativeExampleAnnotations(sententialInstances,distantSupervisionAnnotations,
+										  kb,sentGlobalID, sentence, d);
+						
+						documentNegativeExamples.addAll(negativeExampleAnnotations);
+						documentPositiveExamples.addAll(dsAnnotationWithSentIDs);
 					}
-					//negative example annotations
-					List<NegativeAnnotation> negativeExampleAnnotations = null;
-					negativeExampleAnnotations =
-							  findNegativeExampleAnnotations(sententialInstances,distantSupervisionAnnotations,
-									  kb,sentGlobalID, sentence, d);
-					
-					documentNegativeExamples.addAll(negativeExampleAnnotations);
-					documentPositiveExamples.addAll(dsAnnotationWithSentIDs);
 					sentIndex++;
+					
 				}
 				DistantSupervision.writeDistantSupervisionAnnotations(documentPositiveExamples,dsWriter);
 				DistantSupervision.writeNegativeExampleAnnotations(nec.filter(documentNegativeExamples,documentPositiveExamples,kb,sentences),dsWriter);
@@ -201,6 +217,31 @@ public class KBPDistantSupervision {
     	System.out.println("Distant Supervision took " + (end-start) + " millisseconds");
 	}
 	
+	private List<String> getCandidateEntities(KnowledgeBase kb,String argumentName){
+		Map<String,List<String>> entityMap = kb.getEntityMap();
+		
+		if(entityMap.containsKey(argumentName)){
+			return entityMap.get(argumentName);
+		}
+		else{
+			return new ArrayList<String>();
+		}
+	}
+	
+	private List<Triple<KBArgument, KBArgument, String>> getDateRelations(
+			List<Pair<Argument, Argument>> sententialInstances,
+			DateMap dm, CoreMap sentence, Annotation d) {
+		
+		for(Pair<Argument,Argument> p : sententialInstances){
+			if(p.first instanceof KBArgument){
+				
+			}
+			
+			if(dm.matchesValue(arg1Id, rel, timexValue))
+		}
+
+	}
+
 	private  List<NegativeAnnotation> findNegativeExampleAnnotations(
 			List<Pair<Argument, Argument>> sententialInstances,
 			List<Triple<KBArgument, KBArgument, String>> distantSupervisionAnnotations,
@@ -312,6 +353,62 @@ public class KBPDistantSupervision {
 		KBArgument arg2;
 		String rel;
 		Integer sentID;
+	}
+	
+	public static class DateMap {
+		
+		private Map<String,List<Pair<String,String>>> relMap;
+		
+		public DateMap(String file) throws IOException{
+			BufferedReader br = new BufferedReader(new FileReader(new File(file)));
+			String nextLine;
+			while((nextLine = br.readLine())!=null){
+				String[] values = nextLine.split("\t");
+				String entityId = values[0];
+				String rel = values[1];
+				String timeString = values[2];
+				String timexString = SUTime.parseDateTime(timeString).getTimexValue();
+				
+				if(relMap.containsKey(entityId)){
+					relMap.get(entityId).add(new Pair<>(rel,timexString));
+				}
+				else{
+					List<Pair<String,String>> timeRels = new ArrayList<>();
+					timeRels.add(new Pair<>(rel,timexString));
+					relMap.put(entityId,timeRels);
+				}
+			}
+			
+			br.close();
+		}
+		
+		public boolean participatesInRelation(String arg1Id, String rel){
+			List<Pair<String,String>> values = relMap.get(arg1Id);
+			if(values != null){
+				for(Pair<String,String> p : values){
+					if(p.first.equals(rel)){
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+		
+		public boolean matchesValue(String arg1Id, String rel, String timexValue){
+			List<Pair<String,String>> values = relMap.get(arg1Id);
+			if(values != null){
+				for(Pair<String,String> p : values){
+					if(p.first.equals(rel)){
+						if(p.second.equals(timexValue)){
+							return true;
+						}
+					}
+				}
+			}
+			return false;
+		}
+		
+		
 	}
 	
 	
