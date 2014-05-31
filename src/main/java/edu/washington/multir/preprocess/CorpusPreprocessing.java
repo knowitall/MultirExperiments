@@ -366,7 +366,7 @@ public class CorpusPreprocessing {
 		bw.close();
 		
 		//run charniak johnson parser
-		File parserDirectory = new File("/scratch2/code/JohnsonCharniakParser/bllip-parser/");
+		File parserDirectory = new File(System.class.getResource("bllip-parser").getFile());
 		ProcessBuilder pb = new ProcessBuilder();
 		List<String> commandArguments = new ArrayList<String>();
 		commandArguments.add("./parse.sh");
