@@ -60,6 +60,7 @@ public class CorpusPreprocessing {
 	private static StanfordCoreNLP pipeline;
 	private static TreebankLanguagePack tlp = new PennTreebankLanguagePack();
 	private static GrammaticalStructureFactory gsf = tlp.grammaticalStructureFactory();
+	private static boolean initializedParser = false;
 
 	public static void main(String[] args) throws IOException, InterruptedException{
 		props.put("annotators", "pos,lemma,ner");
@@ -367,8 +368,21 @@ public class CorpusPreprocessing {
 		
 		//run charniak johnson parser
 		File parserDirectory = new File(System.class.getResource("bllip-parser").getFile());
-		ProcessBuilder pb = new ProcessBuilder();
+		ProcessBuilder pb = new ProcessBuilder();		
 		List<String> commandArguments = new ArrayList<String>();
+		
+		if(!initializedParser){
+			commandArguments.add("make");
+			pb.command(commandArguments);
+			pb.directory(parserDirectory);
+			pb.redirectError(new File("make.err"));
+			Process make = pb.start();
+			make.waitFor();
+			initializedParser = true;
+		}
+		
+		pb = new ProcessBuilder();
+		commandArguments = new ArrayList<>();
 		commandArguments.add("./parse.sh");
 		commandArguments.add("-T50");
 		commandArguments.add("-K");
