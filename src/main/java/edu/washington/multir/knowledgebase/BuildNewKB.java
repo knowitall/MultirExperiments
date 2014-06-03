@@ -77,14 +77,16 @@ public class BuildNewKB {
 			for(Pair<String,String> relPair : rel1Map.get(e1)){
 				if(rel2Map.containsKey(relPair.second)){
 					for(Pair<String,String> rel2Pair : rel2Map.get(relPair.second)){
-							JoinRelation jr = JoinRelation.getJoinRelation(relPair.first, rel2Pair.first, joinRelations);
-							if(jr != null){
-								String newLine = e1 + "\t" + rel2Pair.second +"\t" +jr.getRel3();
-								bw.write(newLine+"\n");
-								if(print){
-									System.out.println("Writing new Line:");
-									System.out.println(newLine);
-								}
+						if(!e1.equals(rel2Pair.second)){
+								JoinRelation jr = JoinRelation.getJoinRelation(relPair.first, rel2Pair.first, joinRelations);
+								if(jr != null){
+									String newLine = e1 + "\t" + rel2Pair.second +"\t" +jr.getRel3();
+									bw.write(newLine+"\n");
+									if(print){
+										System.out.println("Writing new Line:");
+										System.out.println(newLine);
+									}
+							}
 						}
 					}
 				}
