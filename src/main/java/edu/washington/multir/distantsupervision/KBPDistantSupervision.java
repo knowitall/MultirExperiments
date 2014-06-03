@@ -108,7 +108,8 @@ public class KBPDistantSupervision {
 		sigList.add(FigerAndNERTypeSignatureORGDATESententialInstanceGeneration.getInstance());
 		sigList.add(FigerAndNERTypeSignatureORGLOCSententialInstanceGeneration.getInstance());
 				
-		DateMap dm = new DateMap("/path");
+		//DateMap dm = new DateMap("/path");
+		DateMap dm = null;
 		
 		KBPDistantSupervision ds = new KBPDistantSupervision(ai,outputPaths,sigList,rm,nec);
 		ds.run(kb,dm,c);

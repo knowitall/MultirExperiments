@@ -25,7 +25,6 @@ public class BuildNewKB {
 		buildNewKB(pathToOldKB,pathToRelationDefinition,pathToNewKB);
 	}
 	
-	
 	public static void buildNewKB(String pathToOldKB, String pathToRelationDefinition, String pathToNewKB) throws IOException{
 		Map<String,String> translationMap = getTranslationMap(pathToRelationDefinition);
 		Set<JoinRelation> joinRelations = getJoinRelations(pathToRelationDefinition);
@@ -78,7 +77,6 @@ public class BuildNewKB {
 			for(Pair<String,String> relPair : rel1Map.get(e1)){
 				if(rel2Map.containsKey(relPair.second)){
 					for(Pair<String,String> rel2Pair : rel2Map.get(relPair.second)){
-						if(!rel2Pair.first.equals(relPair.first)){
 							JoinRelation jr = JoinRelation.getJoinRelation(relPair.first, rel2Pair.first, joinRelations);
 							if(jr != null){
 								String newLine = e1 + "\t" + rel2Pair.second +"\t" +jr.getRel3();
@@ -87,7 +85,6 @@ public class BuildNewKB {
 									System.out.println("Writing new Line:");
 									System.out.println(newLine);
 								}
-							}
 						}
 					}
 				}
