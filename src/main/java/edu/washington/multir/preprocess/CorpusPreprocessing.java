@@ -61,6 +61,7 @@ public class CorpusPreprocessing {
 	private static TreebankLanguagePack tlp = new PennTreebankLanguagePack();
 	private static GrammaticalStructureFactory gsf = tlp.grammaticalStructureFactory();
 	private static boolean initializedParser = false;
+	private static String BLLIP_PARSER_PATH = "/projects/WebWare6/Multir/MultirSystem/files/resources/bllip-parser";
 
 	public static void main(String[] args) throws IOException, InterruptedException{
 		props.put("annotators", "pos,lemma,ner");
@@ -124,7 +125,7 @@ public class CorpusPreprocessing {
 		bw.close();
 		
 		//run charniak johnson parser
-		File parserDirectory = new File("/scratch2/code/JohnsonCharniakParser/bllip-parser/");
+		File parserDirectory = new File(BLLIP_PARSER_PATH);
 		ProcessBuilder pb = new ProcessBuilder();
 		List<String> commandArguments = new ArrayList<String>();
 		commandArguments.add("./parse.sh");
@@ -367,19 +368,10 @@ public class CorpusPreprocessing {
 		bw.close();
 		
 		//run charniak johnson parser
-		File parserDirectory = new File(System.class.getResource("bllip-parser").getFile());
+		File parserDirectory = new File(BLLIP_PARSER_PATH);
 		ProcessBuilder pb = new ProcessBuilder();		
 		List<String> commandArguments = new ArrayList<String>();
-		
-		if(!initializedParser){
-			commandArguments.add("make");
-			pb.command(commandArguments);
-			pb.directory(parserDirectory);
-			pb.redirectError(new File("make.err"));
-			Process make = pb.start();
-			make.waitFor();
-			initializedParser = true;
-		}
+
 		
 		pb = new ProcessBuilder();
 		commandArguments = new ArrayList<>();
@@ -476,7 +468,7 @@ public class CorpusPreprocessing {
 		bw.close();
 		
 		//run charniak johnson parser
-		File parserDirectory = new File("/scratch2/code/JohnsonCharniakParser/bllip-parser/");
+		File parserDirectory = new File(BLLIP_PARSER_PATH);
 		ProcessBuilder pb = new ProcessBuilder();
 		List<String> commandArguments = new ArrayList<String>();
 		commandArguments.add("./parse.sh");
