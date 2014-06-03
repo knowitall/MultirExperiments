@@ -37,8 +37,10 @@ import edu.washington.multirframework.argumentidentification.ArgumentIdentificat
 import edu.washington.multirframework.argumentidentification.NERArgumentIdentification;
 import edu.washington.multirframework.argumentidentification.DefaultSententialInstanceGeneration;
 import edu.washington.multirframework.argumentidentification.SententialInstanceGeneration;
+import edu.washington.multirframework.corpus.CorpusInformationSpecification.SentDocNameInformation.SentDocName;
 import edu.washington.multirframework.corpus.DefaultCorpusInformationSpecification;
 import edu.washington.multirframework.corpus.SentDependencyInformation;
+import edu.washington.multirframework.corpus.SentOffsetInformation.SentStartOffset;
 import edu.washington.multirframework.corpus.TokenOffsetInformation.SentenceRelativeCharacterOffsetBeginAnnotation;
 import edu.washington.multirframework.corpus.TokenOffsetInformation.SentenceRelativeCharacterOffsetEndAnnotation;
 import edu.washington.multirframework.data.Argument;
@@ -58,6 +60,8 @@ public class CorpusPreprocessing {
 	private static StanfordCoreNLP pipeline;
 	private static TreebankLanguagePack tlp = new PennTreebankLanguagePack();
 	private static GrammaticalStructureFactory gsf = tlp.grammaticalStructureFactory();
+	private static boolean initializedParser = false;
+	private static String BLLIP_PARSER_PATH = "/projects/WebWare6/Multir/MultirSystem/files/resources/bllip-parser";
 
 	public static void main(String[] args) throws IOException, InterruptedException{
 		props.put("annotators", "pos,lemma,ner");
@@ -121,7 +125,7 @@ public class CorpusPreprocessing {
 		bw.close();
 		
 		//run charniak johnson parser
-		File parserDirectory = new File("/scratch2/code/JohnsonCharniakParser/bllip-parser/");
+		File parserDirectory = new File(BLLIP_PARSER_PATH);
 		ProcessBuilder pb = new ProcessBuilder();
 		List<String> commandArguments = new ArrayList<String>();
 		commandArguments.add("./parse.sh");
@@ -356,6 +360,7 @@ public class CorpusPreprocessing {
 				tokenStringBuilder.append(token.value());
 				tokenStringBuilder.append(" ");
 			}
+			sentence.set(SentStartOffset.class, sentence.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class));
 			String cjPreprocessedString = cjPreprocessSentence(tokenStringBuilder.toString().trim());
 			bw.write(cjPreprocessedString +"\n");
 		}
@@ -363,9 +368,13 @@ public class CorpusPreprocessing {
 		bw.close();
 		
 		//run charniak johnson parser
-		File parserDirectory = new File("/scratch2/code/JohnsonCharniakParser/bllip-parser/");
-		ProcessBuilder pb = new ProcessBuilder();
+		File parserDirectory = new File(BLLIP_PARSER_PATH);
+		ProcessBuilder pb = new ProcessBuilder();		
 		List<String> commandArguments = new ArrayList<String>();
+
+		
+		pb = new ProcessBuilder();
+		commandArguments = new ArrayList<>();
 		commandArguments.add("./parse.sh");
 		commandArguments.add("-T50");
 		commandArguments.add("-K");
@@ -427,7 +436,7 @@ public class CorpusPreprocessing {
 			index++;
 		}
 		in.close();
-		
+		doc.set(SentDocName.class,docName);
 		return doc;
 	}
 	
@@ -459,7 +468,7 @@ public class CorpusPreprocessing {
 		bw.close();
 		
 		//run charniak johnson parser
-		File parserDirectory = new File("/scratch2/code/JohnsonCharniakParser/bllip-parser/");
+		File parserDirectory = new File(BLLIP_PARSER_PATH);
 		ProcessBuilder pb = new ProcessBuilder();
 		List<String> commandArguments = new ArrayList<String>();
 		commandArguments.add("./parse.sh");
