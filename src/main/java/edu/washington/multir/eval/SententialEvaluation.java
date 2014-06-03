@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -58,9 +59,6 @@ public class SententialEvaluation {
 	private static Pattern moveQuotesLeftPattern = Pattern.compile(".(\\s)(?:''|\\\")(?!\\S)");
 	private static Pattern moveApostropheLeftPattern = Pattern.compile(".(\\s)'(?!')");
 
-//	private static Set<String> validRelations;
-	
-	//private static DocumentExtractor de;
 	
 	private static List<String> cjParses;
 	
@@ -68,7 +66,7 @@ public class SententialEvaluation {
 	
 	private static FeatureGenerator fg;
 	
-	private static ArgumentIdentification ai;
+	private static ArgumentIdentification ai = NERArgumentIdentification.getInstance();
 	
 	
 	public static void main(String[] args) throws IOException, InterruptedException, ParseException, ClassNotFoundException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InstantiationException{
@@ -78,32 +76,23 @@ public class SententialEvaluation {
 			arguments.add(arg);
 		}
 
-		ai = CLIUtils.loadArgumentIdentification(arguments);
 		List<SententialInstanceGeneration> siglist = CLIUtils.loadSententialInstanceGenerationList(arguments);
 		List<String> models = CLIUtils.loadFilePaths(arguments);
 		fg = CLIUtils.loadFeatureGenerator(arguments);
 		
 		//initialize cjParses
 		cjParses = new ArrayList<>();
-		loadCjParses(arguments.get(1));
-		
-//		//read in relations from mapping file
-//		validRelations = new HashSet<String>();
-//		loadRelations(arguments.get(0));
-		
+		loadCjParses(new File(SententialEvaluation.class.getResource("sentential.cjparses.txt").getPath()).getAbsolutePath());
 		
 		//load in annotations
 		List<Label> annotations;
-		String annotationFilePath = arguments.get(0);
+		String annotationFilePath = new File(SententialEvaluation.class.getResource("sentential.txt").getPath()).getAbsolutePath();
 		annotations = loadAnnotations(annotationFilePath);
-		
-		//get extractions
-		//de = new DocumentExtractor(arguments.get(2),fg, ai, sig);
 		List<Extraction> extractions;
 		extractions = extract(siglist,models,annotations);
 		
 
-		String outputFile = arguments.get(2);
+		String outputFile = arguments.get(0);
 		
 		
 		score(annotations,extractions,outputFile);
@@ -262,29 +251,11 @@ public class SententialEvaluation {
 			e.r = r;
 			e.featureScores = featureScoreMap;
 			
-			//if(!a.r.rel.equals(r.rel)) 
-//			System.out.println(e.ID +"\t" + r.rel + "\t" + r.arg1.getArgName() + "\t" + r.arg2.getArgName());
-//			System.out.println(e.printFeatureScores());
+
 			return e;
 		}
 	}
 
-
-
-
-	private static void score(List<Label> annotations,
-			List<Extraction> extractions) {
-		
-		//sort extractions and print in order
-		Collections.sort(extractions,new ExtractionScoreComparable());
-		
-		for(int i =1; i < extractions.size(); i++){
-			Pair<Double,Double> pr = getPR(new ArrayList<Extraction>(extractions.subList(0, i)),annotations,false);
-			System.out.println(pr.first + "\t" + pr.second + "\t" + fscore(pr.first,pr.second));
-		}
-		Pair<Double,Double> finalPr = getPR(extractions,annotations,true);
-		System.out.println(finalPr.first + "\t" + finalPr.second + "\t" + fscore(finalPr.first,finalPr.second));		
-	}
 	
 	private static void score(List<Label> annotations,
 			List<Extraction> extractions, String outputFile) throws IOException {
@@ -393,8 +364,7 @@ public class SententialEvaluation {
 					}
 				}
 			}
-			
-//			totalExtractions++;
+
 		}
 		
 		
@@ -403,19 +373,6 @@ public class SententialEvaluation {
 		return new Pair<Double,Double>(precision,recall);
 	}
 
-
-
-
-//	private static void loadRelations(String mappingFile) throws IOException {
-//		BufferedReader br = new BufferedReader(new FileReader( new File(mappingFile)));
-//		
-//		String nextLine;
-//		while((nextLine = br.readLine())!=null){
-//			String rel = nextLine.trim();
-//			validRelations.add(rel);
-//		}
-//		br.close();
-//	}
 
 
 
