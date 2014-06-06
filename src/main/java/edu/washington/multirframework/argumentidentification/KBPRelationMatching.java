@@ -29,6 +29,7 @@ import edu.washington.multirframework.corpus.TokenOffsetInformation.SentenceRela
 import edu.washington.multirframework.corpus.TokenOffsetInformation.SentenceRelativeCharacterOffsetEndAnnotation;
 import edu.washington.multirframework.data.Argument;
 import edu.washington.multirframework.data.KBArgument;
+import edu.washington.multirframework.data.TypeSignatureRelationMap;
 import edu.washington.multirframework.knowledgebase.KnowledgeBase;
 
 public class KBPRelationMatching implements RelationMatching {
@@ -71,6 +72,7 @@ public class KBPRelationMatching implements RelationMatching {
 	
 				String arg1Type = TypeConstraintUtils.translateNERTypeToTypeString(TypeConstraintUtils.getNERType(sententialInstance.first, tokens));
 				String arg2Type = TypeConstraintUtils.translateNERTypeToTypeString(TypeConstraintUtils.getNERType(sententialInstance.second,tokens));
+				List<String> relevantRelations = TypeSignatureRelationMap.getRelationsForTypeSignature(new Pair<String,String>(arg1Type,arg2Type));
 				
 				if(arg1 instanceof KBArgument){
 					KBArgument kbarg1 = (KBArgument)arg1;
@@ -91,7 +93,9 @@ public class KBPRelationMatching implements RelationMatching {
 	
 						List<String> relationsBetweenArgs = KB.getRelationsBetweenArgumentIds(kbarg1.getKbId(), kbarg2.getKbId());
 						for(String rel: relationsBetweenArgs){
-							dsRelations.add(new Triple<>(kbarg1,kbarg2,rel));
+							if(relevantRelations.contains(rel)){
+								dsRelations.add(new Triple<>(kbarg1,kbarg2,rel));
+							}
 						}
 						
 					}
@@ -104,7 +108,9 @@ public class KBPRelationMatching implements RelationMatching {
 							KBArgument kbarg2 = new KBArgument(sententialInstance.second, sententialInstance.second.getArgName());
 							List<String> relationsBetweenArgs = KB.getRelationsBetweenArgumentIds(kbarg1.getKbId(), kbarg2.getKbId());
 							for(String rel: relationsBetweenArgs){
-								dsRelations.add(new Triple<>(kbarg1,kbarg2,rel));
+								if(relevantRelations.contains(rel)){
+								  dsRelations.add(new Triple<>(kbarg1,kbarg2,rel));
+								}
 							}
 						}
 						
@@ -128,7 +134,9 @@ public class KBPRelationMatching implements RelationMatching {
 							KBArgument kbarg2 = new KBArgument(sententialInstance.second,arg2String);
 							List<String> relationsBetweenArgs = KB.getRelationsBetweenArgumentIds(kbarg1.getKbId(), kbarg2.getKbId());
 							for(String rel: relationsBetweenArgs){
-								dsRelations.add(new Triple<>(kbarg1,kbarg2,rel));
+								if(relevantRelations.contains(rel)){
+									dsRelations.add(new Triple<>(kbarg1,kbarg2,rel));
+								}
 							}
 						}
 					}
@@ -141,7 +149,9 @@ public class KBPRelationMatching implements RelationMatching {
 						List<String> ids = aliasToIdMap.get(arg2Name);
 						if(!arg2Name.equals(sententialInstance.first.getArgName())){
 							if(ids.contains(kbarg1.getKbId())){
-								dsRelations.add(new Triple<>(kbarg1,new KBArgument(sententialInstance.second,arg2Name),aliasRel));
+								if(relevantRelations.contains(aliasRel)){
+									dsRelations.add(new Triple<>(kbarg1,new KBArgument(sententialInstance.second,arg2Name),aliasRel));
+								}
 							}
 						}
 					}
