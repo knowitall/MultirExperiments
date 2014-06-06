@@ -156,7 +156,6 @@ public class KBPRelationMatching implements RelationMatching {
 				}
 			}
 			catch(Exception e){
-				e.printStackTrace();
 			}
 		}
 
