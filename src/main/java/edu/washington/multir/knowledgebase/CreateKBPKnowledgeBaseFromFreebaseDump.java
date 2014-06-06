@@ -34,18 +34,13 @@ public class CreateKBPKnowledgeBaseFromFreebaseDump {
 		BufferedWriter kbOutput = BufferedIOUtils.getBufferedWriter(new File(outputFile));
 		BufferedWriter entityOutput = BufferedIOUtils.getBufferedWriter(new File(entitiesOutputFile));
 
-
-
 		String line;
 		int lineCount =0 ;
 
-		
 		Set<String> relevantRelations = getRelevantRelations(relevantRelationsFile);
 		for(String revRel : relevantRelations){
 			System.out.println(revRel);
 		}
-		
-		
 		while((line = in.readLine())!=null){
 			String[] values = line.split("\t");
 			
@@ -108,7 +103,6 @@ public class CreateKBPKnowledgeBaseFromFreebaseDump {
 		in.close();
 		kbOutput.close();
 		entityOutput.close();
-
 	}
 
 	private static Set<String> getRelevantRelations(
