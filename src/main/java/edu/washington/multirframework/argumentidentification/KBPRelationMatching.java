@@ -20,6 +20,7 @@ import edu.stanford.nlp.time.Timex;
 import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.Pair;
 import edu.stanford.nlp.util.Triple;
+import edu.washington.multir.data.TypeSignatureRelationMap;
 import edu.washington.multir.util.CorpusUtils;
 import edu.washington.multir.util.TypeConstraintUtils;
 import edu.washington.multir.util.TypeConstraintUtils.GeneralType;
@@ -29,7 +30,6 @@ import edu.washington.multirframework.corpus.TokenOffsetInformation.SentenceRela
 import edu.washington.multirframework.corpus.TokenOffsetInformation.SentenceRelativeCharacterOffsetEndAnnotation;
 import edu.washington.multirframework.data.Argument;
 import edu.washington.multirframework.data.KBArgument;
-import edu.washington.multirframework.data.TypeSignatureRelationMap;
 import edu.washington.multirframework.knowledgebase.KnowledgeBase;
 
 public class KBPRelationMatching implements RelationMatching {
@@ -60,12 +60,10 @@ public class KBPRelationMatching implements RelationMatching {
 		
 		List<Triple<KBArgument,KBArgument,String>> dsRelations = new ArrayList<>();
 		dsRelations.addAll(nelRM.matchRelations(sententialInstances, KB, sentence, doc));
-		
-		
+
 		List<CoreLabel> tokens = sentence.get(CoreAnnotations.TokensAnnotation.class);
 		
 		for(Pair<Argument,Argument> sententialInstance : sententialInstances){
-			
 			try{
 				Argument arg1 = sententialInstance.first;
 				Argument arg2 = sententialInstance.second;
@@ -158,7 +156,7 @@ public class KBPRelationMatching implements RelationMatching {
 				}
 			}
 			catch(Exception e){
-				
+				e.printStackTrace();
 			}
 		}
 
